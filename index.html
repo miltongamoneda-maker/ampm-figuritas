@@ -1119,7 +1119,7 @@ ${Object.keys(missByTeam).map(tc=>{const g=missByTeam[tc];return`<div style="mar
 </div>`:''}
 
 ${sub==='requests'?`<div style="padding:0 16px">
-${S.exs.filter(e=>e.st==='pending').length?S.exs.filter(e=>e.st==='pending').map(ex=>{const st=ST.find(s=>s.id===ex.sid);return`<div class="exc"><div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:99px;background:var(--b0);display:flex;align-items:center;justify-content:center;font-size:14px">${S.avatar.face}</div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${ex.rn}</div><div style="font-size:10px;color:var(--g4)">${st?.nm||''}</div></div></div></div><div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1;background:var(--b0);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--b6);margin-bottom:6px">OFRECE</div>${ex.of.map(o=>{const s=stk(o.k);return`<div style="font-size:11px;color:var(--g9);margin-bottom:2px">${s?.fl||''} #${s?.num||''} ×${o.q}</div>`}).join('')}</div><div style="display:flex;align-items:center;color:var(--g4)">${I.swap}</div><div style="flex:1;background:var(--o0);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--o6);margin-bottom:6px">BUSCA</div>${ex.wt.map(w=>{const s=stk(w.k);return`<div style="font-size:11px;color:var(--g9);margin-bottom:2px">${s?.fl||''} #${s?.num||''} ×${w.q}</div>`}).join('')}</div></div><div style="display:flex;gap:8px"><button style="flex:1;padding:10px;background:var(--g1);color:var(--g5);border-radius:10px;font-size:12px;font-weight:600" onclick="rejEx('${ex.id}')">Rechazar</button><button style="flex:2;padding:10px;background:var(--b6);color:#fff;border-radius:10px;font-size:12px;font-weight:600" onclick="accEx('${ex.id}')">Aceptar</button></div></div>`}).join(''):`<div class="empty"><div class="em">📋</div><div class="tt">Sin solicitudes activas</div></div>`}
+${S.exs.filter(e=>e.st==='pending').length?S.exs.filter(e=>e.st==='pending').map(ex=>{const st=ST.find(s=>s.id===ex.sid);return`<div class="exc"><div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:99px;overflow:hidden;flex-shrink:0">${avatarSVG(S.avatar.skin||'#F5C6A0',S.avatar.team||'ARG',32)}</div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${ex.rn}</div><div style="font-size:10px;color:var(--g4)">${st?.nm||''}</div></div></div></div><div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1;background:var(--b0);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--b6);margin-bottom:6px">OFRECE</div>${ex.of.map(o=>{const s=stk(o.k);return`<div style="font-size:11px;color:var(--g9);margin-bottom:2px">${s?.fl||''} #${s?.num||''} ×${o.q}</div>`}).join('')}</div><div style="display:flex;align-items:center;color:var(--g4)">${I.swap}</div><div style="flex:1;background:var(--o0);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--o6);margin-bottom:6px">BUSCA</div>${ex.wt.map(w=>{const s=stk(w.k);return`<div style="font-size:11px;color:var(--g9);margin-bottom:2px">${s?.fl||''} #${s?.num||''} ×${w.q}</div>`}).join('')}</div></div><div style="display:flex;gap:8px"><button style="flex:1;padding:10px;background:var(--g1);color:var(--g5);border-radius:10px;font-size:12px;font-weight:600" onclick="rejEx('${ex.id}')">Rechazar</button><button style="flex:2;padding:10px;background:var(--b6);color:#fff;border-radius:10px;font-size:12px;font-weight:600" onclick="accEx('${ex.id}')">Aceptar</button></div></div>`}).join(''):`<div class="empty"><div class="em">📋</div><div class="tt">Sin solicitudes activas</div></div>`}
 </div>`:''}
 <div style="height:20px"></div></div>`}
 function accEx(id){const ex=S.exs.map(e=>e.id===id?{...e,st:'completed'}:e);U({exs:ex});toast('¡Intercambio completado!')}
@@ -1234,7 +1234,7 @@ function toggleFav(id){U({favStore:S.favStore===id?null:id});toast(S.favStore===
 // ===== PROFILE =====
 function rProf(){const s=stats(),ach=getAch(),earned=ach.filter(a=>a.earned).length;
 return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
-<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="width:72px;height:72px;border-radius:99px;background:linear-gradient(135deg,var(--b6),var(--o5));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;font-weight:800;font-family:'Outfit',sans-serif">${S.avatar.face}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.provider==='google'?'Conectado con Google':S.user.provider==='apple'?'Conectado con Apple':'Modo invitado'}</div>${_supaUserId?'<div style="font-size:11px;color:var(--grn);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block"></span> Datos sincronizados en la nube</div>':'<div style="font-size:11px;color:var(--o6);margin-top:4px">⚠️ Datos solo en este dispositivo</div>'}<button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
+<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="display:inline-block;border-radius:50%;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.1);border:3px solid var(--b5);margin-bottom:12px">${avatarSVG(S.avatar.skin||'#F5C6A0',S.avatar.team||'ARG',80)}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.provider==='google'?'Conectado con Google':S.user.provider==='apple'?'Conectado con Apple':'Modo invitado'}</div>${_supaUserId?'<div style="font-size:11px;color:var(--grn);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block"></span> Datos sincronizados en la nube</div>':'<div style="font-size:11px;color:var(--o6);margin-top:4px">⚠️ Datos solo en este dispositivo</div>'}<button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
 </div>
 <div style="padding:0 16px 16px"><div style="font-size:14px;font-weight:700;color:var(--g9);margin-bottom:10px">🏅 Mis medallas (${getMedals().filter(m=>m.earned).length}/${getMedals().length})</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px">${getMedals().map(m=>`<div style="width:calc(33% - 6px);background:${m.earned?'var(--w)':'var(--g1)'};border:1px solid ${m.earned?'var(--o4)':'var(--g2)'};border-radius:14px;padding:10px;text-align:center;${m.earned?'':'opacity:.4'}"><div style="font-size:24px;margin-bottom:4px">${m.icon}</div><div style="font-size:11px;font-weight:600;color:var(--g9)">${m.nm}</div><div style="font-size:9px;color:var(--g5)">${m.desc}</div></div>`).join('')}</div><div style="font-size:12px;color:var(--b5);margin-top:4px">📍 ${S.user.ct||'Sin ciudad'}</div></div>
@@ -1486,20 +1486,134 @@ return`<div style="padding:0 16px 8px"><div style="display:flex;align-items:cent
 <div class="wmap">${TEAMS.map(t=>{const p=tProg(t.c);const cls=p.p===100?'done':p.p>0?'partial':'empty';
 return`<div class="wmap-cell ${cls}" title="${t.n}: ${p.o}/${p.t}" onclick="U({tab:'album'})" style="cursor:pointer">${t.f}</div>`}).join('')}</div></div>`}
 
-// ===== AVATAR =====
-const AVATAR_FACES=['😊','😎','🤩','😤','🥳','😁','🤓','😜','🫡','💪'];
-const AVATAR_SHIRTS=['🔵','🔴','🟢','🟡','⚪','🟣','🟠','⚫'];
+// ===== AVATAR - SVG Person with Team Jersey =====
+const SKIN_TONES=[
+  {id:'s1',color:'#FDDCB5',name:'Claro'},
+  {id:'s2',color:'#F5C6A0',name:'Medio claro'},
+  {id:'s3',color:'#D4A373',name:'Medio'},
+  {id:'s4',color:'#B07D56',name:'Moreno'},
+  {id:'s5',color:'#8B5E3C',name:'Oscuro'},
+  {id:'s6',color:'#5C3A1E',name:'Muy oscuro'}
+];
+const JERSEY_COLORS={
+  MEX:{p:'#006847',s:'#CE1126',n:'México'},ZAF:{p:'#FFB81C',s:'#007749',n:'Sudáfrica'},KOR:{p:'#CD2E3A',s:'#0047A0',n:'Corea'},
+  CAN:{p:'#FF0000',s:'#FFFFFF',n:'Canadá'},SUI:{p:'#FF0000',s:'#FFFFFF',n:'Suiza'},QAT:{p:'#8B1A1A',s:'#FFFFFF',n:'Catar'},
+  BRA:{p:'#FFDF00',s:'#009739',n:'Brasil'},MAR:{p:'#C1272D',s:'#006233',n:'Marruecos'},HAI:{p:'#00209F',s:'#D21034',n:'Haití'},SCO:{p:'#003087',s:'#FFFFFF',n:'Escocia'},
+  USA:{p:'#002868',s:'#BF0A30',n:'EEUU'},PAR:{p:'#DA121A',s:'#0038A8',n:'Paraguay'},AUS:{p:'#FFCD00',s:'#00843D',n:'Australia'},
+  GER:{p:'#FFFFFF',s:'#000000',n:'Alemania'},CUW:{p:'#002B7F',s:'#F9E814',n:'Curazao'},CIV:{p:'#FF8200',s:'#009A44',n:'Costa de Marfil'},ECU:{p:'#FFD100',s:'#003893',n:'Ecuador'},
+  NED:{p:'#FF6600',s:'#FFFFFF',n:'Países Bajos'},JPN:{p:'#000080',s:'#FFFFFF',n:'Japón'},TUN:{p:'#E70013',s:'#FFFFFF',n:'Túnez'},
+  BEL:{p:'#ED2939',s:'#FAE042',n:'Bélgica'},EGY:{p:'#C8102E',s:'#FFFFFF',n:'Egipto'},IRN:{p:'#FFFFFF',s:'#239F40',n:'Irán'},NZL:{p:'#FFFFFF',s:'#000000',n:'Nueva Zelanda'},
+  ESP:{p:'#AA151B',s:'#F1BF00',n:'España'},CPV:{p:'#003893',s:'#CF2027',n:'Cabo Verde'},SAU:{p:'#006C35',s:'#FFFFFF',n:'Arabia Saudita'},URU:{p:'#5CBFEB',s:'#FFFFFF',n:'Uruguay'},
+  FRA:{p:'#002395',s:'#ED2939',n:'Francia'},SEN:{p:'#00853F',s:'#FDEF42',n:'Senegal'},NOR:{p:'#EF2B2D',s:'#002868',n:'Noruega'},
+  ARG:{p:'#75AADB',s:'#FFFFFF',n:'Argentina'},ALG:{p:'#006233',s:'#FFFFFF',n:'Argelia'},AUT:{p:'#ED2939',s:'#FFFFFF',n:'Austria'},JOR:{p:'#FFFFFF',s:'#007A3D',n:'Jordania'},
+  POR:{p:'#006847',s:'#FF0000',n:'Portugal'},UZB:{p:'#FFFFFF',s:'#1EB53A',n:'Uzbekistán'},COL:{p:'#FCD116',s:'#003893',n:'Colombia'},
+  ENG:{p:'#FFFFFF',s:'#002366',n:'Inglaterra'},CRO:{p:'#FF0000',s:'#FFFFFF',n:'Croacia'},GHA:{p:'#FFFFFF',s:'#006B3F',n:'Ghana'},PAN:{p:'#DA121A',s:'#003DA5',n:'Panamá'},
+  PDA:{p:'#888888',s:'#CCCCCC',n:'Playoff D'},PBA:{p:'#888888',s:'#CCCCCC',n:'Playoff A'},PCA:{p:'#888888',s:'#CCCCCC',n:'Playoff C'},PBB:{p:'#888888',s:'#CCCCCC',n:'Playoff B'},
+  IP1:{p:'#888888',s:'#CCCCCC',n:'Intercont. 1'},IP2:{p:'#888888',s:'#CCCCCC',n:'Intercont. 2'}
+};
+
+function avatarSVG(skin,teamCode,size=80){
+  const sk=skin||'#F5C6A0';
+  const j=JERSEY_COLORS[teamCode]||{p:'#0078D4',s:'#FFFFFF'};
+  const sz=size;
+  const r=sz/80; // scale ratio
+  return`<svg width="${sz}" height="${sz}" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body/Jersey -->
+  <path d="M16 52C16 44 24 38 40 38C56 38 64 44 64 52V72C64 74 62 76 60 76H20C18 76 16 74 16 72V52Z" fill="${j.p}"/>
+  <!-- Jersey collar -->
+  <path d="M32 38C32 38 36 42 40 42C44 42 48 38 48 38" stroke="${j.s}" stroke-width="2.5" fill="none"/>
+  <!-- Jersey stripes/detail -->
+  <rect x="38" y="42" width="4" height="20" rx="1" fill="${j.s}" opacity="0.3"/>
+  <!-- Sleeves -->
+  <path d="M16 52C12 50 8 54 10 60L16 58Z" fill="${j.p}"/>
+  <path d="M64 52C68 50 72 54 70 60L64 58Z" fill="${j.p}"/>
+  <!-- Sleeve cuffs -->
+  <rect x="8" y="58" width="10" height="3" rx="1.5" fill="${j.s}" opacity="0.5"/>
+  <rect x="62" y="58" width="10" height="3" rx="1.5" fill="${j.s}" opacity="0.5"/>
+  <!-- Hands -->
+  <circle cx="11" cy="63" r="4" fill="${sk}"/>
+  <circle cx="69" cy="63" r="4" fill="${sk}"/>
+  <!-- Neck -->
+  <rect x="35" y="32" width="10" height="8" rx="3" fill="${sk}"/>
+  <!-- Head -->
+  <ellipse cx="40" cy="22" rx="16" ry="17" fill="${sk}"/>
+  <!-- Hair -->
+  <ellipse cx="40" cy="14" rx="17" ry="10" fill="#3D2B1F"/>
+  <rect x="23" y="10" width="34" height="8" rx="4" fill="#3D2B1F"/>
+  <!-- Eyes -->
+  <ellipse cx="33" cy="24" rx="2.5" ry="3" fill="#2D2D2D"/>
+  <ellipse cx="47" cy="24" rx="2.5" ry="3" fill="#2D2D2D"/>
+  <circle cx="34" cy="23" r="1" fill="#FFFFFF"/>
+  <circle cx="48" cy="23" r="1" fill="#FFFFFF"/>
+  <!-- Eyebrows -->
+  <path d="M29 20C30 18 35 18 36 20" stroke="#3D2B1F" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M44 20C45 18 50 18 51 20" stroke="#3D2B1F" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <!-- Smile -->
+  <path d="M34 30C36 33 44 33 46 30" stroke="#C4836A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <!-- Ears -->
+  <ellipse cx="24" cy="24" rx="3" ry="4" fill="${sk}"/>
+  <ellipse cx="56" cy="24" rx="3" ry="4" fill="${sk}"/>
+  <!-- Jersey number -->
+  <text x="40" y="60" text-anchor="middle" fill="${j.s}" font-family="Outfit,sans-serif" font-size="12" font-weight="800" opacity="0.8">10</text>
+  </svg>`;
+}
+
 function rAvatarPicker(){
-return`<div class="gift-modal" onclick="U({showAvatar:false})"><div class="gift-sheet" onclick="event.stopPropagation()">
+const curSkin=S.avatar.skin||'#F5C6A0';
+const curTeam=S.avatar.team||'ARG';
+const teamsByGroup={};
+TEAMS.filter(t=>t.f!=='⏳').forEach(t=>{if(!teamsByGroup[t.g])teamsByGroup[t.g]=[];teamsByGroup[t.g].push(t)});
+
+return`<div class="gift-modal" onclick="U({showAvatar:false})"><div class="gift-sheet" style="max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
 <div style="width:36px;height:4px;background:var(--g2);border-radius:2px;margin:0 auto 16px"></div>
-<h3 style="font-size:18px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--g9);text-align:center;margin-bottom:4px">Mi avatar</h3>
-<p style="font-size:12px;color:var(--g5);text-align:center;margin-bottom:16px">Personalizá tu perfil</p>
-<div style="text-align:center;margin-bottom:20px"><div style="display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--b5),var(--b6));font-size:40px">${S.avatar.face}</div></div>
-<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:var(--g9);margin-bottom:8px">Tu cara</div><div style="display:flex;flex-wrap:wrap;gap:6px">${AVATAR_FACES.map(f=>`<button class="avatar-opt ${S.avatar.face===f?'sel':''}" onclick="U({avatar:{...S.avatar,face:'${f}'}});LS.s('avatar',S.avatar)">${f}</button>`).join('')}</div></div>
-<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:var(--g9);margin-bottom:8px">Color de camiseta</div><div style="display:flex;flex-wrap:wrap;gap:6px">${AVATAR_SHIRTS.map(s=>`<button class="avatar-opt ${S.avatar.shirt===s?'sel':''}" onclick="U({avatar:{...S.avatar,shirt:'${s}'}});LS.s('avatar',S.avatar)">${s}</button>`).join('')}</div></div>
-<div><div style="font-size:12px;font-weight:600;color:var(--g9);margin-bottom:8px">Tu selección favorita</div><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto">${TEAMS.filter(t=>t.f!=='⏳').map(t=>`<button class="avatar-opt ${S.avatar.team===t.c?'sel':''}" style="width:40px;height:40px;font-size:20px" onclick="U({avatar:{...S.avatar,team:'${t.c}'}});LS.s('avatar',S.avatar)">${t.f}</button>`).join('')}</div></div>
-<button onclick="U({showAvatar:false})" style="width:100%;padding:14px;background:var(--o5);color:#fff;border-radius:14px;font-size:14px;font-weight:700;margin-top:16px">Listo</button>
+<h3 style="font-size:18px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--g9);text-align:center;margin-bottom:4px">Personalizá tu avatar</h3>
+<p style="font-size:12px;color:var(--g5);text-align:center;margin-bottom:16px">Elegí tu piel y la camiseta de tu selección</p>
+
+<!-- Live Preview -->
+<div style="text-align:center;margin-bottom:20px">
+  <div style="display:inline-block;border-radius:50%;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);border:3px solid var(--o5)">${avatarSVG(curSkin,curTeam,100)}</div>
+  <div style="font-size:13px;font-weight:700;color:var(--g9);margin-top:8px">${S.user?.nm||'Coleccionista'}</div>
+  <div style="font-size:11px;color:var(--o5);font-weight:600">${JERSEY_COLORS[curTeam]?.n||curTeam}</div>
+</div>
+
+<!-- Skin Tone -->
+<div style="margin-bottom:18px">
+  <div style="font-size:13px;font-weight:700;color:var(--g9);margin-bottom:10px">🎨 Color de piel</div>
+  <div style="display:flex;gap:8px;justify-content:center">
+    ${SKIN_TONES.map(s=>`<button onclick="U({avatar:{...S.avatar,skin:'${s.color}'}})" style="width:44px;height:44px;border-radius:50%;background:${s.color};border:3px solid ${curSkin===s.color?'var(--o5)':'var(--g2)'};cursor:pointer;transition:.2s;${curSkin===s.color?'transform:scale(1.15);box-shadow:0 2px 10px rgba(255,122,26,.3)':''}"></button>`).join('')}
+  </div>
+</div>
+
+<!-- Team Selection -->
+<div>
+  <div style="font-size:13px;font-weight:700;color:var(--g9);margin-bottom:10px">👕 Camiseta de tu selección</div>
+  ${Object.keys(teamsByGroup).map(g=>`
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:600;color:var(--g4);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Grupo ${g}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${teamsByGroup[g].map(t=>{
+          const jc=JERSEY_COLORS[t.c]||{p:'#888',s:'#ccc'};
+          const isSel=curTeam===t.c;
+          return`<button onclick="U({avatar:{...S.avatar,team:'${t.c}'}})" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;border:2px solid ${isSel?'var(--o5)':'var(--g2)'};background:${isSel?'var(--o0)':'var(--w)'};cursor:pointer;transition:.15s;${isSel?'box-shadow:0 2px 8px rgba(255,122,26,.2)':''}">
+            <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,${jc.p} 50%,${jc.s} 50%);border:1px solid rgba(0,0,0,.1)"></div>
+            <span style="font-size:14px">${t.f}</span>
+            <span style="font-size:11px;font-weight:${isSel?'700':'500'};color:${isSel?'var(--o5)':'var(--g7)'}">${t.n.length>12?t.n.substring(0,11)+'…':t.n}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('')}
+</div>
+
+<button onclick="saveAvatar()" style="width:100%;padding:14px;background:var(--o5);color:#fff;border-radius:14px;font-size:14px;font-weight:700;margin-top:16px;position:sticky;bottom:0">✅ Guardar avatar</button>
 </div></div>`}
+
+function saveAvatar(){
+  LS.s('avatar',S.avatar);
+  supaScheduleSync('profile');
+  U({showAvatar:false});
+  toast('✅ Avatar actualizado');
+}
 
 // ===== STREAK / RACHA =====
 function getStreak(){
