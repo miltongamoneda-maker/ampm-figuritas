@@ -170,10 +170,54 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}input{font
 .streak-bar{background:linear-gradient(135deg,#FF6B00,#FF8C38);border-radius:14px;padding:12px 16px;margin:0 16px 12px;color:#fff;display:flex;align-items:center;gap:12px}
 .streak-fire{font-size:28px;animation:flame-pulse 1.5s ease infinite}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app"></div>
 <script>
+
+// ===== SUPABASE AUTH =====
+const SUPA_URL='https://aiknysxsjlodcrzzknbt.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpa255c3hzamxvZGNyenprbmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjkwMDcsImV4cCI6MjA4OTU0NTAwN30.wRvju9R9JRgOSDA1aGQtkF2BMcv3ZkVJ3CA5mjGVdZk';
+let supaClient=null;
+try{if(typeof supabase!=='undefined'&&SUPA_KEY!=='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpa255c3hzamxvZGNyenprbmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjkwMDcsImV4cCI6MjA4OTU0NTAwN30.wRvju9R9JRgOSDA1aGQtkF2BMcv3ZkVJ3CA5mjGVdZk'){supaClient=supabase.createClient(SUPA_URL,SUPA_KEY)}}catch(e){console.log('Supabase not available, using localStorage')}
+
+async function signInWithGoogle(){
+  if(!supaClient){toast('Supabase no configurado','e');return}
+  const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+  if(error)toast('Error: '+error.message,'e');
+}
+async function signInWithApple(){
+  if(!supaClient){toast('Supabase no configurado','e');return}
+  const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
+  if(error)toast('Error: '+error.message,'e');
+}
+async function signInAsGuest(){
+  if(supaClient){
+    const{data,error}=await supaClient.auth.signInAnonymously();
+    if(error){console.log('Anonymous auth error, falling back to local');signInLocal();return}
+    const u=data.user;
+    U({user:{id:u.id,nm:'Coleccionista',ph:'',ct:'Managua',provider:'anonymous'},authStep:0});
+    checkOnboard();
+  }else{signInLocal()}
+}
+function signInLocal(){
+  U({user:{id:'u-'+Date.now(),nm:'Coleccionista',ph:'',ct:'Managua',provider:'local'},authStep:0});
+  checkOnboard();
+}
+async function checkSupabaseSession(){
+  if(!supaClient)return;
+  try{
+    const{data:{session}}=await supaClient.auth.getSession();
+    if(session&&!S.user){
+      const u=session.user;
+      const nm=u.user_metadata?.full_name||u.user_metadata?.name||u.email?.split('@')[0]||'Coleccionista';
+      const avatar=u.user_metadata?.avatar_url||'';
+      U({user:{id:u.id,nm:nm,ph:u.phone||'',ct:LS.g('userCity','Managua'),provider:u.app_metadata?.provider||'unknown',avatar_url:avatar},authStep:0});
+    }
+  }catch(e){console.log('Session check failed')}
+}
+
 // ========== DATA ==========
 const TEAMS=[
 // Group A
@@ -651,9 +695,9 @@ function finishOnboard(){LS.s('onboarded',true);U({showOnboard:false})}
 function checkOnboard(){if(!LS.g('onboarded',false)){U({showOnboard:true,onboardSlide:0})}}
 
 function rAuth(){
-if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 40px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100)}</div><button class="abtn p" style="max-width:300px;z-index:1" onclick="U({authStep:1})">Comenzar</button><p style="font-size:12px;color:rgba(255,255,255,.4);margin-top:16px;z-index:1">Coleccioná, intercambiá, completá tu álbum</p></div>`;
-return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Bienvenido!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">Ingresá tus datos para empezar</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Teléfono</label><input id="aP" value="${S.authP}" placeholder="+505 8888-0000" type="tel"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button><button style="width:100%;padding:12px;color:rgba(255,255,255,.4);font-size:12px;margin-top:12px" onclick="adminLogin()">🔒 Acceso admin</button></div></div>`}
-function bAuth(){const n=document.getElementById('aN'),p=document.getElementById('aP'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};p.oninput=()=>{S.authP=p.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()&&S.authP.trim()){U({user:{id:'u-'+Date.now(),nm:S.authN.trim(),ph:S.authP.trim(),ct:S.authC},authStep:0});checkOnboard()}}}}
+if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
+return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Casi listo!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">¿Cómo te llamás y de dónde sos?</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button></div></div>`}
+function bAuth(){const n=document.getElementById('aN'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()){const uid=S.user?.id||'u-'+Date.now();U({user:{...S.user,id:uid,nm:S.authN.trim(),ph:'',ct:S.authC},authStep:0});LS.s('userCity',S.authC);checkOnboard()}}}}
 function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U({isAdmin:true,showAdmin:true})}else if(pw!==null){alert('Contraseña incorrecta')}}
 
 // ===== NAV =====
@@ -958,7 +1002,7 @@ function toggleFav(id){U({favStore:S.favStore===id?null:id});toast(S.favStore===
 // ===== PROFILE =====
 function rProf(){const s=stats(),ach=getAch(),earned=ach.filter(a=>a.earned).length;
 return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
-<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="width:72px;height:72px;border-radius:99px;background:linear-gradient(135deg,var(--b6),var(--o5));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;font-weight:800;font-family:'Outfit',sans-serif">${S.avatar.face}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.ph}</div><button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
+<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="width:72px;height:72px;border-radius:99px;background:linear-gradient(135deg,var(--b6),var(--o5));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;font-weight:800;font-family:'Outfit',sans-serif">${S.avatar.face}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.provider==='google'?'Conectado con Google':S.user.provider==='apple'?'Conectado con Apple':'Modo invitado'}</div><button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
 </div>
 <div style="padding:0 16px 16px"><div style="font-size:14px;font-weight:700;color:var(--g9);margin-bottom:10px">🏅 Mis medallas (${getMedals().filter(m=>m.earned).length}/${getMedals().length})</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px">${getMedals().map(m=>`<div style="width:calc(33% - 6px);background:${m.earned?'var(--w)':'var(--g1)'};border:1px solid ${m.earned?'var(--o4)':'var(--g2)'};border-radius:14px;padding:10px;text-align:center;${m.earned?'':'opacity:.4'}"><div style="font-size:24px;margin-bottom:4px">${m.icon}</div><div style="font-size:11px;font-weight:600;color:var(--g9)">${m.nm}</div><div style="font-size:9px;color:var(--g5)">${m.desc}</div></div>`).join('')}</div><div style="font-size:12px;color:var(--b5);margin-top:4px">📍 ${S.user.ct||'Sin ciudad'}</div></div>
@@ -967,7 +1011,7 @@ return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:var(--g9)">Progreso del álbum</span><span style="font-size:13px;font-weight:700;color:var(--o5)">${s.p}%</span></div><div style="height:8px;background:var(--g2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${s.p}%;background:linear-gradient(90deg,var(--b6),var(--o5));border-radius:4px"></div></div><div style="font-size:11px;color:var(--g4);margin-top:6px">${s.o} de ${TOT} figuritas</div></div>
 <div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px"><button onclick="exportMissing()" style="flex:1;padding:12px;background:var(--w);border:1px solid var(--g2);border-radius:12px;font-size:13px;font-weight:600;color:var(--g7);display:flex;align-items:center;justify-content:center;gap:6px">${I.share} Compartir faltantes</button>${S.isAdmin?`<button onclick="U({showAdmin:true})" style="flex:1;padding:12px;background:var(--g9);color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">${I.gear} Panel Admin</button>`:''}</div>
 <div style="padding:0 16px;margin-bottom:16px"><div class="dm-toggle" onclick="toggleSound()" style="margin-bottom:8px"><div class="dm-track ${_soundOn?'on':''}" style="background:${_soundOn?'var(--b5)':'var(--g3)'}"><div class="dm-knob" style="${_soundOn?'left:22px':'left:2px'}"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${_soundOn?'🔊 Sonidos activados':'🔇 Sonidos desactivados'}</div><div style="font-size:11px;color:var(--g5)">Efectos al agregar figuritas</div></div></div><div class="dm-toggle" onclick="toggleDark()"><div class="dm-track ${S.darkMode?'on':''}"><div class="dm-knob"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${S.darkMode?'🌙 Modo oscuro':'☀️ Modo claro'}</div><div style="font-size:11px;color:var(--g5)">Tocá para cambiar</div></div></div></div>
-<button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="U({user:null,authStep:0,authN:'',authP:'',authC:'Managua'})">Cerrar sesión</button>
+<button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="if(supaClient)supaClient.auth.signOut();U({user:null,authStep:0,authN:'',authP:'',authC:'Managua'})">Cerrar sesión</button>
 </div>`}
 
 // ===== ADMIN PANEL =====
