@@ -180,7 +180,208 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}input{font
 const SUPA_URL='https://aiknysxsjlodcrzzknbt.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpa255c3hzamxvZGNyenprbmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjkwMDcsImV4cCI6MjA4OTU0NTAwN30.wRvju9R9JRgOSDA1aGQtkF2BMcv3ZkVJ3CA5mjGVdZk';
 let supaClient=null;
+let _supaUserId=null;
+let _syncTimer=null;
+let _syncing=false;
+let _syncQueue={stickers:false,preds:false,profile:false};
+
 try{if(typeof supabase!=='undefined'){supaClient=supabase.createClient(SUPA_URL,SUPA_KEY);console.log('Supabase connected!')}}catch(e){console.log('Supabase not available, using localStorage')}
+
+// ===== SUPABASE DATA SYNC LAYER =====
+async function supaLoadAll(userId){
+  if(!supaClient||!userId)return;
+  _supaUserId=userId;
+  console.log('Loading data from Supabase for',userId);
+  try{
+    // Load stickers
+    const{data:stickers,error:sErr}=await supaClient.from('stickers').select('sticker_id,quantity,available_for_trade').eq('user_id',userId);
+    if(!sErr&&stickers){
+      const my={};
+      stickers.forEach(s=>{my[s.sticker_id]={q:s.quantity,a:s.available_for_trade}});
+      // Merge: if Supabase has data, use it; if empty but LS has data, upload LS data
+      if(stickers.length>0){
+        S.my=my;LS.s('my',my);
+        console.log('Loaded',stickers.length,'stickers from Supabase');
+      }else if(Object.keys(S.my).length>0){
+        console.log('No Supabase stickers, uploading localStorage data...');
+        await supaBulkUploadStickers(userId,S.my);
+      }
+    }
+
+    // Load predictions
+    const{data:preds,error:pErr}=await supaClient.from('predictions').select('match_id,home_score,away_score').eq('user_id',userId);
+    if(!pErr&&preds){
+      const predsMap={};
+      preds.forEach(p=>{predsMap[p.match_id]={h:p.home_score,a:p.away_score}});
+      if(preds.length>0){
+        S.preds=predsMap;LS.s('preds',predsMap);
+      }else if(Object.keys(S.preds).length>0){
+        await supaBulkUploadPreds(userId,S.preds);
+      }
+    }
+
+    // Load profile extras (favorite_store, avatar)
+    const{data:prof,error:prErr}=await supaClient.from('profiles').select('favorite_store,avatar_data,is_admin,display_name,city').eq('id',userId).single();
+    if(!prErr&&prof){
+      if(prof.favorite_store)S.favStore=prof.favorite_store;
+      if(prof.avatar_data)S.avatar=prof.avatar_data;
+      if(prof.is_admin)S.isAdmin=true;
+      if(prof.display_name&&S.user)S.user.nm=prof.display_name;
+      if(prof.city&&S.user)S.user.ct=prof.city;
+      LS.s('fav',S.favStore);LS.s('avatar',S.avatar);LS.s('adm',S.isAdmin);
+    }
+
+    // Load exchanges (all pending for the community)
+    const{data:exs,error:eErr}=await supaClient.from('exchanges').select('*').eq('status','pending');
+    if(!eErr&&exs&&exs.length>0){
+      S.exs=exs.map(e=>({id:e.id,rid:e.requester_id,rn:e.requester_name,sid:e.store_id,st:e.status,ca:e.created_at,of:e.offered,wt:e.wanted}));
+      LS.s('exs',S.exs);
+    }
+
+    R();
+    console.log('Supabase data loaded successfully');
+  }catch(err){console.error('Supabase load error:',err)}
+}
+
+async function supaBulkUploadStickers(userId,myMap){
+  if(!supaClient||!userId)return;
+  const rows=Object.entries(myMap).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:userId,sticker_id:k,quantity:v.q,available_for_trade:v.a||0}));
+  if(rows.length===0)return;
+  // Batch in chunks of 200
+  for(let i=0;i<rows.length;i+=200){
+    const chunk=rows.slice(i,i+200);
+    const{error}=await supaClient.from('stickers').upsert(chunk,{onConflict:'user_id,sticker_id'});
+    if(error)console.error('Bulk upload stickers error:',error);
+  }
+  console.log('Uploaded',rows.length,'stickers to Supabase');
+}
+
+async function supaBulkUploadPreds(userId,predsMap){
+  if(!supaClient||!userId)return;
+  const rows=Object.entries(predsMap).map(([k,v])=>({user_id:userId,match_id:k,home_score:v.h,away_score:v.a}));
+  if(rows.length===0)return;
+  const{error}=await supaClient.from('predictions').upsert(rows,{onConflict:'user_id,match_id'});
+  if(error)console.error('Bulk upload preds error:',error);
+}
+
+// Debounced sync: saves to Supabase after 1.5 seconds of inactivity
+function supaScheduleSync(what){
+  if(!supaClient||!_supaUserId)return;
+  _syncQueue[what]=true;
+  if(_syncTimer)clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>supaFlush(),1500);
+}
+
+async function supaFlush(){
+  if(_syncing||!supaClient||!_supaUserId)return;
+  _syncing=true;
+  const uid=_supaUserId;
+  try{
+    // Sync stickers
+    if(_syncQueue.stickers){
+      _syncQueue.stickers=false;
+      const rows=Object.entries(S.my).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:uid,sticker_id:k,quantity:v.q,available_for_trade:v.a||0}));
+      if(rows.length>0){
+        for(let i=0;i<rows.length;i+=200){
+          const chunk=rows.slice(i,i+200);
+          await supaClient.from('stickers').upsert(chunk,{onConflict:'user_id,sticker_id'});
+        }
+      }
+      // Delete stickers with quantity 0
+      const deleted=Object.entries(S.my).filter(([k,v])=>v.q<=0).map(([k])=>k);
+      // Also delete stickers that were removed (not in S.my anymore)
+      const{data:remote}=await supaClient.from('stickers').select('sticker_id').eq('user_id',uid);
+      if(remote){
+        const localIds=new Set(Object.keys(S.my).filter(k=>S.my[k].q>0));
+        const toDelete=remote.filter(r=>!localIds.has(r.sticker_id)).map(r=>r.sticker_id);
+        if(toDelete.length>0){
+          for(let i=0;i<toDelete.length;i+=200){
+            const chunk=toDelete.slice(i,i+200);
+            await supaClient.from('stickers').delete().eq('user_id',uid).in('sticker_id',chunk);
+          }
+        }
+      }
+      console.log('Stickers synced to Supabase');
+    }
+
+    // Sync predictions
+    if(_syncQueue.preds){
+      _syncQueue.preds=false;
+      const rows=Object.entries(S.preds).map(([k,v])=>({user_id:uid,match_id:k,home_score:v.h,away_score:v.a}));
+      if(rows.length>0){
+        await supaClient.from('predictions').upsert(rows,{onConflict:'user_id,match_id'});
+      }
+      console.log('Predictions synced to Supabase');
+    }
+
+    // Sync profile
+    if(_syncQueue.profile){
+      _syncQueue.profile=false;
+      await supaClient.from('profiles').update({
+        display_name:S.user?.nm||'Coleccionista',
+        city:S.user?.ct||'Managua',
+        favorite_store:S.favStore||null,
+        avatar_data:S.avatar||null,
+        is_admin:S.isAdmin||false,
+        updated_at:new Date().toISOString()
+      }).eq('id',uid);
+      console.log('Profile synced to Supabase');
+    }
+  }catch(err){console.error('Supabase sync error:',err)}
+  _syncing=false;
+}
+
+// Save a single sticker change immediately (for quick responsiveness)
+async function supaSaveSticker(stickerId,qty,avail){
+  if(!supaClient||!_supaUserId)return;
+  if(qty<=0){
+    await supaClient.from('stickers').delete().eq('user_id',_supaUserId).eq('sticker_id',stickerId);
+  }else{
+    await supaClient.from('stickers').upsert({user_id:_supaUserId,sticker_id:stickerId,quantity:qty,available_for_trade:avail},{onConflict:'user_id,sticker_id'});
+  }
+}
+
+// Log activity to Supabase
+async function supaLogActivity(stickerId,num,flag,teamName){
+  if(!supaClient||!_supaUserId)return;
+  try{
+    await supaClient.from('activity_log').insert({user_id:_supaUserId,sticker_id:stickerId,sticker_num:num,team_flag:flag,team_name:teamName});
+  }catch(e){}
+}
+
+// Save exchange to Supabase
+async function supaSaveExchange(ex){
+  if(!supaClient||!_supaUserId)return;
+  try{
+    await supaClient.from('exchanges').insert({
+      id:ex.id,requester_id:_supaUserId,requester_name:ex.rn,
+      store_id:ex.sid,status:ex.st,offered:ex.of,wanted:ex.wt
+    });
+  }catch(e){console.error('Exchange save error:',e)}
+}
+
+// Listen for auth state changes
+if(supaClient){
+  supaClient.auth.onAuthStateChange(async(event,session)=>{
+    console.log('Auth event:',event);
+    if(event==='SIGNED_IN'&&session?.user){
+      const u=session.user;
+      const nm=u.user_metadata?.full_name||u.user_metadata?.name||u.email?.split('@')[0]||'Coleccionista';
+      const avatar=u.user_metadata?.avatar_url||'';
+      S.user={id:u.id,nm:nm,ph:u.phone||'',ct:LS.g('userCity','Managua'),provider:u.app_metadata?.provider||'unknown',avatar_url:avatar};
+      S.authStep=0;
+      LS.s('user',S.user);
+      await supaLoadAll(u.id);
+      checkOnboard();
+      R();
+    }else if(event==='SIGNED_OUT'){
+      _supaUserId=null;
+      S.user=null;
+      LS.s('user',null);
+      R();
+    }
+  });
+}
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
@@ -196,14 +397,27 @@ async function signInAsGuest(){
   if(supaClient){
     const{data,error}=await supaClient.auth.signInAnonymously();
     if(error){console.log('Anonymous auth error, falling back to local');signInLocal();return}
+    // Auth state listener (onAuthStateChange) will handle user setup + data loading
     const u=data.user;
-    U({user:{id:u.id,nm:'Coleccionista',ph:'',ct:'Managua',provider:'anonymous'},authStep:0});
+    S.user={id:u.id,nm:'Coleccionista',ph:'',ct:'Managua',provider:'anonymous'};
+    S.authStep=0;
+    LS.s('user',S.user);
+    R();
+    await supaLoadAll(u.id);
     checkOnboard();
   }else{signInLocal()}
 }
 function signInLocal(){
   U({user:{id:'u-'+Date.now(),nm:'Coleccionista',ph:'',ct:'Managua',provider:'local'},authStep:0});
   checkOnboard();
+}
+async function doSignOut(){
+  // Flush any pending sync first
+  if(_syncTimer)clearTimeout(_syncTimer);
+  await supaFlush();
+  _supaUserId=null;
+  if(supaClient)await supaClient.auth.signOut();
+  U({user:null,authStep:0,authN:'',authP:'',authC:'Managua'});
 }
 async function checkSupabaseSession(){
   if(!supaClient)return;
@@ -213,9 +427,13 @@ async function checkSupabaseSession(){
       const u=session.user;
       const nm=u.user_metadata?.full_name||u.user_metadata?.name||u.email?.split('@')[0]||'Coleccionista';
       const avatar=u.user_metadata?.avatar_url||'';
-      U({user:{id:u.id,nm:nm,ph:u.phone||'',ct:LS.g('userCity','Managua'),provider:u.app_metadata?.provider||'unknown',avatar_url:avatar},authStep:0});
+      S.user={id:u.id,nm:nm,ph:u.phone||'',ct:LS.g('userCity','Managua'),provider:u.app_metadata?.provider||'unknown',avatar_url:avatar};
+      S.authStep=0;
+      LS.s('user',S.user);
+      R();
+      await supaLoadAll(u.id);
     }
-  }catch(e){console.log('Session check failed')}
+  }catch(e){console.log('Session check failed:',e)}
 }
 
 // ========== DATA ==========
@@ -477,7 +695,14 @@ let S={
   toast:null,authStep:0,authN:'',authP:'',authC:'Managua'
 };
 function U(p){Object.assign(S,p);R();sv()}
-function sv(){LS.s('user',S.user);LS.s('my',S.my);LS.s('exs',S.exs);LS.s('myEx',S.myEx);LS.s('sess',SESS);LS.s('adm',S.isAdmin);LS.s('fav',S.favStore);LS.s('adBan',S.adBanner);LS.s('preds',S.preds)}
+function sv(){
+  // Always save to localStorage (cache)
+  LS.s('user',S.user);LS.s('my',S.my);LS.s('exs',S.exs);LS.s('myEx',S.myEx);LS.s('sess',SESS);LS.s('adm',S.isAdmin);LS.s('fav',S.favStore);LS.s('adBan',S.adBanner);LS.s('preds',S.preds);LS.s('avatar',S.avatar);
+  // Schedule Supabase sync (debounced)
+  supaScheduleSync('stickers');
+  supaScheduleSync('preds');
+  supaScheduleSync('profile');
+}
 
 // ===== HELPERS =====
 function stats(){const v=Object.values(S.my);const o=v.filter(x=>x.q>0).length;const d=v.filter(x=>x.q>1).reduce((a,x)=>a+x.q-1,0);const t=v.filter(x=>x.a>0).length;return{o,m:TOT-o,d,t,p:Math.round(o/TOT*100)}}
@@ -532,6 +757,9 @@ function quickAdd(id){
   if(log.length>20)log.length=20;
   LS.s('actLog',log);
   U({my:m});
+  // Sync single sticker to Supabase immediately
+  supaSaveSticker(id,nq,na);
+  supaLogActivity(id,sk.num,sk.fl,sk.tn);
   if(navigator.vibrate)navigator.vibrate(nq===1?[30]:sk.star?[50,30,50,30,50]:[20,40,20]);
   bumpStreak();playSound(nq===1?(sk.star?'star':'add'):'dup');toast(nq===1?`✓ #${sk.num} agregada`:`+1 → tenés ${nq} (${na} para cambio)`,'s');setTimeout(checkMilestones,500);
 }
@@ -606,7 +834,7 @@ ${found&&canGift?`<div style="margin-bottom:16px"><label style="font-size:12px;f
 <button onclick="doGift('${found.id}',${S.giftQty})" style="width:100%;padding:16px;background:var(--o5);color:#fff;border-radius:14px;font-size:15px;font-weight:700">🎁 Regalar ${S.giftQty} figurita${S.giftQty>1?'s':''}</button>`:''}
 ${!found&&S.giftNum?'<div style="font-size:12px;color:var(--red);text-align:center;padding:8px">Número no encontrado. Rango: 1 a '+TOT+'</div>':''}
 </div></div>`}
-function doGift(id,qty){const m={...S.my};if(!m[id]||m[id].q<qty)return;m[id]={q:m[id].q-qty,a:Math.max(0,m[id].a-qty)};if(m[id].q===0)delete m[id];U({my:m,showGift:false,giftNum:'',giftQty:1});toast(`🎁 ${qty} figurita${qty>1?'s':''} regalada${qty>1?'s':''}`)}
+function doGift(id,qty){const m={...S.my};if(!m[id]||m[id].q<qty)return;m[id]={q:m[id].q-qty,a:Math.max(0,m[id].a-qty)};const nq=m[id].q;const na=m[id].a;if(m[id].q===0)delete m[id];U({my:m,showGift:false,giftNum:'',giftQty:1});supaSaveSticker(id,nq,na);toast(`🎁 ${qty} figurita${qty>1?'s':''} regalada${qty>1?'s':''}`)}
 
 // ===== PACK ANIMATION =====
 function openPackAnim(){
@@ -615,7 +843,7 @@ setTimeout(()=>{document.querySelector('.pack-envelope')?.classList.add('opening
 setTimeout(()=>{U({packAnim:false,showPack:true,packNums:[],packInput:'',packRevealed:false})},800)}
 
 // ===== PRODE VALIDATION =====
-function setPred(mid,h,a){bumpStreak();const p={...S.preds};const hv=Math.max(0,Math.min(20,Math.floor(parseInt(h)||0)));const av=Math.max(0,Math.min(20,Math.floor(parseInt(a)||0)));p[mid]={h:hv,a:av};U({preds:p})}
+function setPred(mid,h,a){bumpStreak();const p={...S.preds};const hv=Math.max(0,Math.min(20,Math.floor(parseInt(h)||0)));const av=Math.max(0,Math.min(20,Math.floor(parseInt(a)||0)));p[mid]={h:hv,a:av};U({preds:p});if(supaClient&&_supaUserId){supaClient.from('predictions').upsert({user_id:_supaUserId,match_id:mid,home_score:hv,away_score:av},{onConflict:'user_id,match_id'}).then(()=>console.log('Prediction saved')).catch(e=>console.error('Pred save err:',e))}}
 
 // ===== ICONS =====
 // AMPM Logo - real PNG embedded as base64
@@ -827,8 +1055,8 @@ ${d.q>0?'<button style="width:100%;padding:12px;color:var(--red);font-size:13px;
 </div></div>`}
 function mQ(d){const el=document.getElementById('mQN');let v=Math.max(0,parseInt(el.textContent)+d);el.textContent=v;const ac=document.getElementById('mAC');if(ac)ac.style.display=v>1?'block':'none'}
 function mA(d){const q=parseInt(document.getElementById('mQN').textContent),el=document.getElementById('mAN');el.textContent=Math.max(0,Math.min(q-1,parseInt(el.textContent)+d))}
-function mSave(){const x=S.sModal,q=parseInt(document.getElementById('mQN').textContent),a=q>1?Math.min(parseInt(document.getElementById('mAN')?.textContent||0),q-1):0;const m={...S.my};m[x.id]={q,a};U({my:m,sModal:null});toast('Figurita actualizada')}
-function mRm(){const m={...S.my};delete m[S.sModal.id];U({my:m,sModal:null});toast('Figurita removida')}
+function mSave(){const x=S.sModal,q=parseInt(document.getElementById('mQN').textContent),a=q>1?Math.min(parseInt(document.getElementById('mAN')?.textContent||0),q-1):0;const m={...S.my};m[x.id]={q,a};U({my:m,sModal:null});supaSaveSticker(x.id,q,a);toast('Figurita actualizada')}
+function mRm(){const x=S.sModal;const m={...S.my};delete m[x.id];U({my:m,sModal:null});supaSaveSticker(x.id,0,0);toast('Figurita removida')}
 
 // ===== PACK OPENING =====
 function rPack(){const nums=S.packNums,inp=S.packInput,revealed=S.packRevealed;
@@ -857,7 +1085,7 @@ ${nums.length>0?`<button onclick="packReveal()" style="width:100%;padding:14px;b
 </div></div>`}
 function packAddNum(){const n=parseInt(S.packInput);if(!n||n<1||n>TOT||S.packNums.length>=7)return;if(S.packNums.includes(n)){toast('Ya ingresaste ese número','e');return}U({packNums:[...S.packNums,n],packInput:''})}
 function packRmNum(i){const n=[...S.packNums];n.splice(i,1);U({packNums:n})}
-function packReveal(){const m={...S.my};const log=LS.g('actLog',[]);S.packNums.forEach(n=>{const sk=ALL.find(x=>x.num===n);if(sk){const cur=m[sk.id]||{q:0,a:0};const nq=cur.q+1;m[sk.id]={q:nq,a:nq>=2?nq-1:0};log.unshift({id:sk.id,num:sk.num,fl:sk.fl,tn:sk.tn,t:Date.now()})}});if(log.length>20)log.length=20;LS.s('actLog',log);if(navigator.vibrate)navigator.vibrate([30,50,30]);U({my:m,packRevealed:true});playSound('pack');toast(`🎉 ¡${S.packNums.length} figuritas agregadas!`);setTimeout(checkMilestones,800)}
+function packReveal(){const m={...S.my};const log=LS.g('actLog',[]);const synced=[];S.packNums.forEach(n=>{const sk=ALL.find(x=>x.num===n);if(sk){const cur=m[sk.id]||{q:0,a:0};const nq=cur.q+1;m[sk.id]={q:nq,a:nq>=2?nq-1:0};log.unshift({id:sk.id,num:sk.num,fl:sk.fl,tn:sk.tn,t:Date.now()});synced.push({id:sk.id,q:nq,a:m[sk.id].a,num:sk.num,fl:sk.fl,tn:sk.tn})}});if(log.length>20)log.length=20;LS.s('actLog',log);if(navigator.vibrate)navigator.vibrate([30,50,30]);U({my:m,packRevealed:true});synced.forEach(s=>{supaSaveSticker(s.id,s.q,s.a);supaLogActivity(s.id,s.num,s.fl,s.tn)});playSound('pack');toast(`🎉 ¡${S.packNums.length} figuritas agregadas!`);setTimeout(checkMilestones,800)}
 
 // ===== LOCK ALBUM =====
 function toggleLock(){const v=!S.albumLocked;LS.s('albumLock',v);U({albumLocked:v});toast(v?'🔒 Álbum bloqueado':'🔓 Álbum desbloqueado','i')}
@@ -951,6 +1179,10 @@ if(gaveStk&&m[gaveStk.id]&&m[gaveStk.id].q>0){
 }
 if(navigator.vibrate)navigator.vibrate(50);
 U({my:m,rcvStk:null,rcvGave:''});
+// Sync to Supabase
+supaSaveSticker(x.id,m[x.id]?.q||0,m[x.id]?.a||0);
+supaLogActivity(x.id,x.num,x.fl,x.tn);
+if(gaveStk){supaSaveSticker(gaveStk.id,m[gaveStk.id]?.q||0,m[gaveStk.id]?.a||0);}
 }
 
 // ===== WIZARD =====
@@ -975,7 +1207,7 @@ function wOQ(i,d){const o=[...S.wOff];o[i]={...o[i],q:Math.max(1,o[i].q+d)};U({w
 function wWA(id){if(S.wWnt.length>=4||S.wWnt.find(w=>w.k===id))return;U({wWnt:[...S.wWnt,{k:id,q:1}],wSrch:''})}
 function wWR(i){const w=[...S.wWnt];w.splice(i,1);U({wWnt:w})}
 function wWQ(i,d){const w=[...S.wWnt];w[i]={...w[i],q:Math.max(1,w[i].q+d)};U({wWnt:w})}
-function wSub(){const ex={id:'my-'+Date.now(),rid:S.user.id,rn:S.user.nm,sid:S.wStore.id,st:'pending',ca:new Date().toISOString(),of:S.wOff,wt:S.wWnt};U({myEx:[...S.myEx,ex],showWiz:false});toast('¡Solicitud creada!')}
+function wSub(){const ex={id:'my-'+Date.now(),rid:S.user.id,rn:S.user.nm,sid:S.wStore.id,st:'pending',ca:new Date().toISOString(),of:S.wOff,wt:S.wWnt};U({myEx:[...S.myEx,ex],showWiz:false});supaSaveExchange(ex);toast('¡Solicitud creada!')}
 
 // ===== STORES =====
 function rStores(){const f=S.stFilt,q=S.stSrch.toLowerCase(),ps=partStores();
@@ -1002,7 +1234,7 @@ function toggleFav(id){U({favStore:S.favStore===id?null:id});toast(S.favStore===
 // ===== PROFILE =====
 function rProf(){const s=stats(),ach=getAch(),earned=ach.filter(a=>a.earned).length;
 return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
-<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="width:72px;height:72px;border-radius:99px;background:linear-gradient(135deg,var(--b6),var(--o5));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;font-weight:800;font-family:'Outfit',sans-serif">${S.avatar.face}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.provider==='google'?'Conectado con Google':S.user.provider==='apple'?'Conectado con Apple':'Modo invitado'}</div><button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
+<div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:20px;margin:0 16px 16px;text-align:center"><div style="width:72px;height:72px;border-radius:99px;background:linear-gradient(135deg,var(--b6),var(--o5));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#fff;font-weight:800;font-family:'Outfit',sans-serif">${S.avatar.face}</div><div style="font-size:18px;font-weight:700;color:var(--g9)">${S.user.nm}</div><div style="font-size:13px;color:var(--g5)">${S.user.provider==='google'?'Conectado con Google':S.user.provider==='apple'?'Conectado con Apple':'Modo invitado'}</div>${_supaUserId?'<div style="font-size:11px;color:var(--grn);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block"></span> Datos sincronizados en la nube</div>':'<div style="font-size:11px;color:var(--o6);margin-top:4px">⚠️ Datos solo en este dispositivo</div>'}<button onclick="U({showAvatar:true})" style="font-size:11px;color:var(--o5);margin-top:4px;font-weight:600">Editar avatar</button>
 </div>
 <div style="padding:0 16px 16px"><div style="font-size:14px;font-weight:700;color:var(--g9);margin-bottom:10px">🏅 Mis medallas (${getMedals().filter(m=>m.earned).length}/${getMedals().length})</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px">${getMedals().map(m=>`<div style="width:calc(33% - 6px);background:${m.earned?'var(--w)':'var(--g1)'};border:1px solid ${m.earned?'var(--o4)':'var(--g2)'};border-radius:14px;padding:10px;text-align:center;${m.earned?'':'opacity:.4'}"><div style="font-size:24px;margin-bottom:4px">${m.icon}</div><div style="font-size:11px;font-weight:600;color:var(--g9)">${m.nm}</div><div style="font-size:9px;color:var(--g5)">${m.desc}</div></div>`).join('')}</div><div style="font-size:12px;color:var(--b5);margin-top:4px">📍 ${S.user.ct||'Sin ciudad'}</div></div>
@@ -1011,7 +1243,7 @@ return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:var(--g9)">Progreso del álbum</span><span style="font-size:13px;font-weight:700;color:var(--o5)">${s.p}%</span></div><div style="height:8px;background:var(--g2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${s.p}%;background:linear-gradient(90deg,var(--b6),var(--o5));border-radius:4px"></div></div><div style="font-size:11px;color:var(--g4);margin-top:6px">${s.o} de ${TOT} figuritas</div></div>
 <div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px"><button onclick="exportMissing()" style="flex:1;padding:12px;background:var(--w);border:1px solid var(--g2);border-radius:12px;font-size:13px;font-weight:600;color:var(--g7);display:flex;align-items:center;justify-content:center;gap:6px">${I.share} Compartir faltantes</button>${S.isAdmin?`<button onclick="U({showAdmin:true})" style="flex:1;padding:12px;background:var(--g9);color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">${I.gear} Panel Admin</button>`:''}</div>
 <div style="padding:0 16px;margin-bottom:16px"><div class="dm-toggle" onclick="toggleSound()" style="margin-bottom:8px"><div class="dm-track ${_soundOn?'on':''}" style="background:${_soundOn?'var(--b5)':'var(--g3)'}"><div class="dm-knob" style="${_soundOn?'left:22px':'left:2px'}"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${_soundOn?'🔊 Sonidos activados':'🔇 Sonidos desactivados'}</div><div style="font-size:11px;color:var(--g5)">Efectos al agregar figuritas</div></div></div><div class="dm-toggle" onclick="toggleDark()"><div class="dm-track ${S.darkMode?'on':''}"><div class="dm-knob"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${S.darkMode?'🌙 Modo oscuro':'☀️ Modo claro'}</div><div style="font-size:11px;color:var(--g5)">Tocá para cambiar</div></div></div></div>
-<button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="if(supaClient)supaClient.auth.signOut();U({user:null,authStep:0,authN:'',authP:'',authC:'Managua'})">Cerrar sesión</button>
+<button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="doSignOut()">Cerrar sesión</button>
 </div>`}
 
 // ===== ADMIN PANEL =====
@@ -1392,6 +1624,8 @@ function bEv(){
   const pi=document.getElementById('packNumInput');if(pi){pi.oninput=()=>{S.packInput=pi.value};pi.onkeydown=(e)=>{if(e.key==='Enter'){e.preventDefault();packAddNum();R();setTimeout(()=>{const el=document.getElementById('packNumInput');if(el){el.focus();el.value=''}},0)}}}
 }
 R();
+// Check for existing Supabase session on page load (e.g., after OAuth redirect)
+checkSupabaseSession();
 </script>
 </body>
 </html>
