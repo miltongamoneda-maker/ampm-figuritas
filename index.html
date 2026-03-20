@@ -180,7 +180,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}input{font
 const SUPA_URL='https://aiknysxsjlodcrzzknbt.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpa255c3hzamxvZGNyenprbmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjkwMDcsImV4cCI6MjA4OTU0NTAwN30.wRvju9R9JRgOSDA1aGQtkF2BMcv3ZkVJ3CA5mjGVdZk';
 let supaClient=null;
-try{if(typeof supabase!=='undefined'&&SUPA_KEY!=='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpa255c3hzamxvZGNyenprbmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NjkwMDcsImV4cCI6MjA4OTU0NTAwN30.wRvju9R9JRgOSDA1aGQtkF2BMcv3ZkVJ3CA5mjGVdZk'){supaClient=supabase.createClient(SUPA_URL,SUPA_KEY)}}catch(e){console.log('Supabase not available, using localStorage')}
+try{if(typeof supabase!=='undefined'){supaClient=supabase.createClient(SUPA_URL,SUPA_KEY);console.log('Supabase connected!')}}catch(e){console.log('Supabase not available, using localStorage')}
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
