@@ -395,9 +395,11 @@ async function fetchLeaderboard(){
   if(!supaClient)return;
   if(Date.now()-_leaderboardTs<CACHE_TTL&&_leaderboardCache.length>0)return _leaderboardCache;
   try{
-    const{data,error}=await supaClient.rpc('get_leaderboard');
-    if(error)throw error;
-    if(data&&data.length>0){
+    const resp=await fetch(SUPA_URL+'/rest/v1/rpc/get_leaderboard',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:'{}'
+    });
+    const data=await resp.json();
+    if(Array.isArray(data)&&data.length>0){
       _leaderboardCache=data.map(u=>({
         id:u.user_id,
         nm:u.name||'Coleccionista',
@@ -418,8 +420,10 @@ async function fetchGlobalStats(){
   if(!supaClient)return _globalStatsCache;
   if(Date.now()-_globalStatsTs<CACHE_TTL&&_globalStatsCache)return _globalStatsCache;
   try{
-    const{data,error}=await supaClient.rpc('get_global_stats');
-    if(error)throw error;
+    const resp=await fetch(SUPA_URL+'/rest/v1/rpc/get_global_stats',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:'{}'
+    });
+    const data=await resp.json();
     if(data){
       _globalStatsCache=data;
       _globalStatsTs=Date.now();
@@ -446,11 +450,15 @@ async function signInAsGuest(){
     LS.s('user',S.user);
     R();
     await supaLoadAll(u.id);
+    fetchLeaderboard();
+    fetchGlobalStats();
     checkOnboard();
   }else{signInLocal()}
 }
 function signInLocal(){
   U({user:{id:'u-'+Date.now(),nm:'Coleccionista',ph:'',ct:'Managua',provider:'local'},authStep:0});
+  fetchLeaderboard();
+  fetchGlobalStats();
   checkOnboard();
 }
 async function doSignOut(){
@@ -475,6 +483,8 @@ async function checkSupabaseSession(){
       R();
       await supaLoadAll(u.id);
     }
+    fetchLeaderboard();
+    fetchGlobalStats();
   }catch(e){console.log('Session check failed:',e)}
 }
 
