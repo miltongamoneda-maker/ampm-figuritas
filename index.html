@@ -435,10 +435,28 @@ async function fetchGlobalStats(){
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
-  if(error)toast('Error: '+error.message,'e');
+  // In Capacitor, try Browser plugin first (SFSafariViewController), fallback to in-webview redirect
+  if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
+    const{data,error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
+    if(error){toast('Error: '+error.message,'e');return}
+    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover'})}
+  }else{
+    // Web or Capacitor without Browser plugin — redirect in same window (stays in WKWebView)
+    const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+    if(error)toast('Error: '+error.message,'e');
+  }
 }
-// Apple Sign-In: pendiente cuenta Apple Developer
+async function signInWithApple(){
+  if(!supaClient){toast('Supabase no configurado','e');return}
+  if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
+    const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
+    if(error){toast('Error: '+error.message,'e');return}
+    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover'})}
+  }else{
+    const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
+    if(error)toast('Error: '+error.message,'e');
+  }
+}
 async function signInAsGuest(){
   if(supaClient){
     const{data,error}=await supaClient.auth.signInAnonymously();
@@ -790,11 +808,10 @@ function getRank(){
 }
 function getMissing(){return ALL.filter(x=>!S.my[x.id]||S.my[x.id].q===0)}
 function getMatches(){const missing=getMissing().map(x=>x.id);return S.exs.filter(e=>e.st==='pending'&&e.of.some(o=>missing.includes(o.k)))}
-function exportMissing(){const m=getMissing();const byTeam={};m.forEach(x=>{if(!byTeam[x.tc])byTeam[x.tc]=[];byTeam[x.tc].push(`#${x.num} ${x.nm}`)});let txt=`⚽ AMPM Figuritas Mundial 2026\n📋 Mi lista de faltantes (${m.length}/${TOT})\n\n`;
+async function exportMissing(){const m=getMissing();const byTeam={};m.forEach(x=>{if(!byTeam[x.tc])byTeam[x.tc]=[];byTeam[x.tc].push(`#${x.num} ${x.nm}`)});let txt=`⚽ AMPM Figuritas Mundial 2026\n📋 Mi lista de faltantes (${m.length}/${TOT})\n\n`;
 Object.keys(byTeam).forEach(c=>{const t=TEAMS.find(x=>x.c===c);txt+=`${t.f} ${t.n} (${byTeam[c].length}):\n${byTeam[c].join(', ')}\n\n`});
 txt+=`\n🏪 Buscame en las jornadas de intercambio AMPM!\n📲 Descargá la app: figuritas.ampm.ni`;
-if(navigator.share)navigator.share({title:'Mis faltantes - AMPM Figuritas',text:txt}).catch(()=>{});
-else{navigator.clipboard?.writeText(txt);toast('Lista copiada al portapapeles','i')}}
+try{if(navigator.share){await navigator.share({title:'Mis faltantes - AMPM Figuritas',text:txt})}else{await navigator.clipboard?.writeText(txt);toast('Lista copiada al portapapeles','i')}}catch(e){try{await navigator.clipboard?.writeText(txt);toast('Lista copiada al portapapeles','i')}catch(e2){toast('No se pudo compartir','e')}}}
 
 // ===== DARK MODE =====
 function toggleDark(){const d=!S.darkMode;document.body.classList.toggle('dark',d);LS.s('dark',d);U({darkMode:d})}
@@ -833,7 +850,7 @@ function quickAdd(id){
 }
 
 // ===== SHARE PROGRESS (WhatsApp sticker-style) =====
-function shareProgress(){
+async function shareProgress(){
   const s=stats();
   const topTeams=TEAMS.filter(t=>t.f!=='⏳').map(t=>{const p=tProg(t.c);return{...t,...p}}).filter(t=>t.p>0).sort((a,b)=>b.p-a.p).slice(0,3);
   let txt=`⚽🏆 *MI ÁLBUM MUNDIAL 2026* 🏆⚽\n\n`;
@@ -844,8 +861,7 @@ function shareProgress(){
   if(topTeams.length){txt+=`🔥 Mis equipos más completos:\n`;topTeams.forEach(t=>{txt+=`${t.f} ${t.n}: ${t.o}/${t.t} (${t.p}%)\n`});txt+='\n'}
   txt+=`🏪 Intercambiá figuritas en AMPM Nicaragua\n`;
   txt+=`📲 ¡Bajá la app y completá tu álbum!`;
-  if(navigator.share)navigator.share({title:'Mi progreso - Figuritas Mundial 2026',text:txt}).catch(()=>{});
-  else{navigator.clipboard?.writeText(txt);toast('Progreso copiado al portapapeles','i')}
+  try{if(navigator.share){await navigator.share({title:'Mi progreso - Figuritas Mundial 2026',text:txt})}else{await navigator.clipboard?.writeText(txt);toast('Progreso copiado al portapapeles','i')}}catch(e){try{await navigator.clipboard?.writeText(txt);toast('Progreso copiado al portapapeles','i')}catch(e2){toast('No se pudo compartir','e')}}
 }
 
 function getRecentActivity(){return LS.g('actLog',[])}
@@ -991,7 +1007,7 @@ function finishOnboard(){LS.s('onboarded',true);U({showOnboard:false})}
 function checkOnboard(){if(!LS.g('onboarded',false)){U({showOnboard:true,onboardSlide:0})}}
 
 function rAuth(){
-if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
+if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
 return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Casi listo!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">¿Cómo te llamás y de dónde sos?</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button></div></div>`}
 function bAuth(){const n=document.getElementById('aN'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()){const uid=S.user?.id||'u-'+Date.now();U({user:{...S.user,id:uid,nm:S.authN.trim(),ph:'',ct:S.authC},authStep:0});LS.s('userCity',S.authC);checkOnboard()}}}}
 function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U({isAdmin:true,showAdmin:true})}else if(pw!==null){alert('Contraseña incorrecta')}}
