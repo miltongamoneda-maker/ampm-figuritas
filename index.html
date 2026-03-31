@@ -755,7 +755,7 @@ let S={
   admNewS:{sid:'',dt:'',s:'09:00',e:'18:00'},
   showPack:false,packNums:[],packInput:'',packRevealed:false,
   albumLocked:LS.g('albumLock',false),avatar:LS.g('avatar',{face:'😊',shirt:'🔵',team:'ARG'}),showAvatar:false,
-  favStore:LS.g('fav',null),
+  favStore:LS.g('fav',null),nearStore:null,nearDist:null,
   adBanner:LS.g('adBan',{img:'',txt:'Disfrutá Coca-Cola en tu AMPM',link:'',brand:'Coca-Cola'}),
   showProde:false,prodeGroup:'A',preds:LS.g('preds',{}),
   darkMode:LS.g('dark',false),showGift:false,giftNum:'',giftQty:1,
@@ -846,7 +846,16 @@ function quickAdd(id){
   supaSaveSticker(id,nq,na);
   supaLogActivity(id,sk.num,sk.fl,sk.tn);
   if(navigator.vibrate)navigator.vibrate(nq===1?[30]:sk.star?[50,30,50,30,50]:[20,40,20]);
-  bumpStreak();playSound(nq===1?(sk.star?'star':'add'):'dup');toast(nq===1?`✓ #${sk.num} agregada`:`+1 → tenés ${nq} (${na} para cambio)`,'s');setTimeout(checkMilestones,500);
+  bumpStreak();playSound(nq===1?(sk.star?'star':'add'):'dup');toast(nq===1?`✓ #${sk.num} ${sk.nm} agregada`:`+1 #${sk.num} ${sk.nm} → tenés ${nq} (${na} para cambio)`,'s');setTimeout(checkMilestones,500);
+}
+function quickRemove(id){
+  const m={...S.my};const cur=m[id];if(!cur||cur.q<=0)return;
+  const nq=cur.q-1;const na=nq>=2?nq-1:0;
+  if(nq===0){delete m[id]}else{m[id]={q:nq,a:na}}
+  U({my:m});supaSaveSticker(id,nq,na);
+  const sk=ALL.find(x=>x.id===id);
+  if(navigator.vibrate)navigator.vibrate([15]);
+  toast(nq===0?`✕ #${sk.num} ${sk.nm} removida`:`−1 #${sk.num} → tenés ${nq}`,'i');
 }
 
 // ===== SHARE PROGRESS (WhatsApp sticker-style) =====
@@ -1035,9 +1044,7 @@ ${favLive?`<div style="background:var(--grn0);border:2px solid var(--grn);border
 
 <div class="pc"><div style="display:flex;align-items:center;gap:16px;position:relative;z-index:1"><div style="position:relative;width:72px;height:72px;flex-shrink:0"><svg width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="6"/><circle cx="36" cy="36" r="30" fill="none" stroke="var(--o4)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${s.p*1.885} 188.5" transform="rotate(-90 36 36)"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;font-family:'Outfit',sans-serif">${s.p}%</div></div><div><p style="font-size:11px;font-weight:500;opacity:.65;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Tu progreso</p><p style="font-size:24px;font-weight:800;font-family:'Outfit',sans-serif">${s.o} <span style="font-size:13px;opacity:.55;font-weight:400">/ ${TOT}</span></p></div></div><div style="display:flex;gap:10px;margin-top:16px;position:relative;z-index:1"><div style="flex:1;background:rgba(255,255,255,.1);border-radius:10px;padding:8px 0;text-align:center"><div style="font-size:18px;font-weight:700;font-family:'Outfit',sans-serif">${s.m}</div><div style="font-size:10px;opacity:.6">Faltan</div></div><div style="flex:1;background:rgba(255,122,26,.2);border-radius:10px;padding:8px 0;text-align:center"><div style="font-size:18px;font-weight:700;font-family:'Outfit',sans-serif">${s.d}</div><div style="font-size:10px;opacity:.6">Repetidas</div></div><div style="flex:1;background:rgba(255,255,255,.1);border-radius:10px;padding:8px 0;text-align:center"><div style="font-size:18px;font-weight:700;font-family:'Outfit',sans-serif">${s.t}</div><div style="font-size:10px;opacity:.6">En cambio</div></div></div></div>
 
-<div style="padding:0 16px;display:flex;gap:8px;margin-bottom:8px"><button onclick="openPackAnim()" style="flex:1;background:linear-gradient(135deg,var(--o5),var(--o6));color:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700">${I.pkg} Abrí un sobre</button></div>
-<button onclick="exportMissing()" style="width:calc(100% - 32px);margin:0 16px 8px;padding:12px;background:var(--w);border:1px solid var(--g2);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600;color:var(--g7)">${I.share} Mandar mi lista</button>
-<button onclick="shareProgress()" style="width:calc(100% - 32px);margin:0 16px 14px;padding:12px;background:var(--w);border:1px solid var(--g2);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600;color:var(--b6)">📱 Mandar mi progreso</button>
+
 <button onclick="U({tab:'prode'})" style="width:calc(100% - 32px);margin:0 16px 14px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;font-weight:700"><span style="font-size:18px">⚽</span> Predecí los partidos <span style="font-size:10px;padding:3px 8px;background:var(--o5);border-radius:6px;font-weight:600">${prodeStats().pts} pts</span></button>
 
 ${getRecentActivity().length?`<div style="padding:0 16px"><div class="st">📝 Últimas agregadas</div></div>
@@ -1111,7 +1118,7 @@ const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const dup=d?.q>1;const isSta
 const bg=!has?'var(--g1)':tr?'var(--o5)':isStar&&has?'#FFD700':'var(--b5)';
 const border=!has?'1px dashed var(--g3)':isStar&&has?'1px solid #DAA520':'1px solid transparent';
 const color=!has?'var(--g4)':tr||(!isStar)?'#fff':'#5D3800';
-return`<button onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})' style="width:48px;height:48px;border-radius:12px;background:${bg};border:${border};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:${color};font-family:'Outfit',sans-serif;position:relative;transition:transform .1s;${!has?'opacity:.4':''}${isStar&&has?';box-shadow:0 1px 6px rgba(218,165,32,.3)':''}" ${!has?'':''}>${dup?`<div style="position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">×${d.q}</div>`:''}${x.num}</button>`}).join('')}</div></div>`}).join('')}
+return`<button onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})' style="width:48px;height:48px;border-radius:12px;background:${bg};border:${border};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:${color};font-family:'Outfit',sans-serif;position:relative;transition:transform .1s;${!has?'opacity:.4':''}${isStar&&has?';box-shadow:0 1px 6px rgba(218,165,32,.3)':''}" ${!has?'':''}>${dup?`<div style="position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;font-weight:700;display:flex;align-items;center;justify-content:center">×${d.q}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-5px;left:-5px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''} ${x.num}</button>`}).join('')}</div></div>`}).join('')}
 
 <div style="padding:8px 16px;font-size:10px;color:var(--g4);text-align:center">💡 Tap = +1 · Mantené presionado = editar</div>
 <div style="height:20px"></div></div>`}
@@ -1123,7 +1130,7 @@ const o=stks.filter(x=>S.my[x.id]?.q>0).length;const isFWC=t.c==='FWC';
 return`<div class="scr"><div style="background:${isFWC?'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)':'linear-gradient(135deg,var(--b8),var(--b6))'};padding:16px 16px 20px;color:#fff"><button style="color:rgba(255,255,255,.7);font-size:13px;display:flex;align-items:center;gap:4px;margin-bottom:12px" onclick="U({selTeam:null})">${I.cl} Volver</button><div style="display:flex;align-items:center;gap:12px"><span style="font-size:40px">${t.f}</span><div><h2 style="font-size:20px;font-weight:800;font-family:'Outfit',sans-serif">${t.n}</h2><p style="font-size:12px;opacity:.65">${isFWC?'Trofeo, mascota, emblema y 12 estadios sede':`Grupo ${t.g} · ${o}/${stks.length} figuritas`}</p></div></div></div>
 <div class="flt">${[['all','Todas'],['own','Tengo'],['mis','Faltan'],['dup','Repetidas'],['trd','En cambio'],['star',isFWC?'✨ FOIL':'⭐ Estrellas']].map(([id,lb])=>`<button class="fb ${f===id?'a':''}" onclick="U({aFilt:'${id}'})">${lb}</button>`).join('')}</div>
 <div style="padding:0 20px 4px;font-size:10px;color:var(--g4);display:flex;align-items:center;gap:4px"><span style="font-size:12px">💡</span> Tap = +1 figurita · Mantené presionado = editar</div>
-${fil.length?`<div class="sg">${fil.map(x=>{const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const icon=CI[x.ct]||'⚽';return`<button class="sc ${x.star&&has?'star':x.foil&&has?'star':tr?'trd':has?'own':'mis'}" onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})'>${d?.q>1?`<div class="qb">×${d.q}</div>`:''}${tr?'<div class="tb">🔄</div>':''}${(x.star||x.foil)&&has?`<div class="stb">${x.star?'⭐':'✨'}</div>`:''}<div style="font-size:20px;margin-bottom:2px">${x.ct==='ESC'?t.f:icon}</div><div style="font-size:16px;font-weight:800;color:${has?'var(--g9)':'var(--g4)'};font-family:'Outfit',sans-serif">${x.num}</div></button>`}).join('')}</div>`:`<div class="empty"><div class="em">🔍</div><div class="tt">No hay figuritas con este filtro</div></div>`}</div>`}
+${fil.length?`<div class="sg">${fil.map(x=>{const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const icon=CI[x.ct]||'⚽';return`<button class="sc ${x.star&&has?'star':x.foil&&has?'star':tr?'trd':has?'own':'mis'}" onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})'>${d?.q>1?`<div class="qb">×${d.q}</div>`:''}${tr?'<div class="tb">🔄</div>':''}${(x.star||x.foil)&&has?`<div class="stb">${x.star?'⭐':'✨'}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-4px;left:-4px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''}<div style="font-size:20px;margin-bottom:2px">${x.ct==='ESC'?t.f:icon}</div><div style="font-size:16px;font-weight:800;color:${has?'var(--g9)':'var(--g4)'};font-family:'Outfit',sans-serif">${x.num}</div></button>`}).join('')}</div>`:`<div class="empty"><div class="em">🔍</div><div class="tt">No hay figuritas con este filtro</div></div>`}</div>`}
 
 // ===== STICKER MODAL =====
 function rModal(){const x=S.sModal,d=S.my[x.id]||{q:0,a:0};const icon=CI[x.ct]||'⚽';
@@ -1192,14 +1199,12 @@ return`<div class="scr"><div style="padding:16px 16px 6px;display:flex;justify-c
 
 ${sub==='offer'?`<div style="padding:0 16px">
 ${dups.length?`<p style="font-size:12px;color:var(--g5);margin-bottom:12px">Mostrá esta pantalla en la jornada de intercambio</p>
-${Object.keys(dupsByTeam).map(tc=>{const g=dupsByTeam[tc];return`<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:16px">${g.f}</span><span style="font-size:12px;font-weight:600;color:var(--g9)">${g.n}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">${g.items.map(x=>`<div style="background:var(--b0);border:1px solid var(--b1);border-radius:10px;padding:6px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--b6)">#${x.num}</div><div style="font-size:9px;color:var(--g5);white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis">${x.nm}</div><div style="font-size:10px;font-weight:700;color:var(--grn)">×${x.avail}</div></div>`).join('')}</div></div>`}).join('')}
-<button onclick="exportMissing()" style="width:100%;padding:14px;background:var(--w);border:1px solid var(--g2);border-radius:14px;font-size:13px;font-weight:600;color:var(--g7);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">${I.share} Mandar por WhatsApp</button>`:`<div class="empty"><div class="em">📦</div><div class="tt">No tenés repetidas</div><div class="ds">Seguí coleccionando para tener figuritas para cambiar</div></div>`}
+${Object.keys(dupsByTeam).map(tc=>{const g=dupsByTeam[tc];return`<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:16px">${g.f}</span><span style="font-size:12px;font-weight:600;color:var(--g9)">${g.n}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">${g.items.map(x=>`<div style="background:var(--b0);border:1px solid var(--b1);border-radius:10px;padding:6px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--b6)">#${x.num}</div><div style="font-size:10px;font-weight:700;color:var(--grn)">×${x.avail}</div></div>`).join('')}</div></div>`}).join('')}`:`<div class="empty"><div class="em">📦</div><div class="tt">No tenés repetidas</div><div class="ds">Seguí coleccionando para tener figuritas para cambiar</div></div>`}
 </div>`:''}
 
 ${sub==='need'?`<div style="padding:0 16px">
 ${missing.length?`<p style="font-size:12px;color:var(--g5);margin-bottom:12px">Mostrá esta pantalla para que vean qué te falta</p>
-${Object.keys(missByTeam).map(tc=>{const g=missByTeam[tc];return`<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:16px">${g.f}</span><span style="font-size:12px;font-weight:600;color:var(--g9)">${g.n}</span><span style="font-size:10px;color:var(--g4)">(${g.items.length})</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">${g.items.map(x=>`<button onclick="U({rcvStk:ALL.find(z=>z.id==='${x.id}'),rcvGave:''})" style="background:var(--o0);border:1px solid var(--o1);border-radius:10px;padding:6px 10px;text-align:center;cursor:pointer;transition:.15s"><div style="font-size:13px;font-weight:700;color:var(--o6)">#${x.num}</div><div style="font-size:9px;color:var(--g5);white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis">${x.nm}</div></button>`).join('')}</div></div>`}).join('')}
-<button onclick="exportMissing()" style="width:100%;padding:14px;background:var(--w);border:1px solid var(--g2);border-radius:14px;font-size:13px;font-weight:600;color:var(--g7);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">${I.share} Compartir por WhatsApp</button>`:`<div class="empty"><div class="em">🎉</div><div class="tt">¡Álbum completo!</div><div class="ds">Tenés todas las figuritas</div></div>`}
+${Object.keys(missByTeam).map(tc=>{const g=missByTeam[tc];return`<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:16px">${g.f}</span><span style="font-size:12px;font-weight:600;color:var(--g9)">${g.n}</span><span style="font-size:10px;color:var(--g4)">(${g.items.length})</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">${g.items.map(x=>`<button onclick="U({rcvStk:ALL.find(z=>z.id==='${x.id}'),rcvGave:''})" style="background:var(--o0);border:1px solid var(--o1);border-radius:10px;padding:6px 10px;text-align:center;cursor:pointer;transition:.15s"><div style="font-size:13px;font-weight:700;color:var(--o6)">#${x.num}</div></button>`).join('')}</div></div>`}).join('')}`:`<div class="empty"><div class="em">🎉</div><div class="tt">¡Álbum completo!</div><div class="ds">Tenés todas las figuritas</div></div>`}
 </div>`:''}
 
 ${sub==='requests'?`<div style="padding:0 16px">
@@ -1301,6 +1306,8 @@ return`<div class="scr"><div class="ph"><h1>Tiendas participantes</h1><p>${ps.le
 <div class="sb">${I.srch}<input id="stS" value="${S.stSrch}" placeholder="Buscar tienda o zona..."></div>
 <div class="flt"><button class="fb ${f==='all'?'a':''}" onclick="U({stFilt:'all'})">Todas (${ps.length})</button>${pCities.map(c=>`<button class="fb ${f===c?'a':''}" onclick="U({stFilt:'${c}'})">${c} (${cc(c)})</button>`).join('')}</div>
 <div style="background:linear-gradient(135deg,var(--b7),var(--o6));border-radius:14px;padding:14px;margin:8px 16px 14px;color:#fff"><p style="font-size:13px;font-weight:700">🎯 Lugares para cambiar</p><p style="font-size:11px;opacity:.8;margin-top:4px">Visitá tu AMPM más cercano durante las jornadas activas</p></div>
+<button onclick="detectNearestStore()" style="width:calc(100% - 32px);margin:0 16px 14px;padding:12px;background:var(--w);border:2px solid var(--b5);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;color:var(--b6)">📍 Detectar mi tienda cercana</button>
+${S.nearStore?`<div style="background:var(--grn0);border:1px solid var(--grn);border-radius:12px;padding:10px 16px;margin:0 16px 12px;display:flex;align-items:center;gap:8px"><span style="font-size:16px">📍</span><div style="flex:1"><div style="font-size:12px;font-weight:700;color:#166534">Estás en: ${S.nearStore.nm}</div><div style="font-size:11px;color:#166534">A ${S.nearDist||'?'}km de distancia</div></div></div>`:''}
 ${fil.map(s=>{const lv=isLive(s.id),nx=nextSess(s.id),fv=S.favStore===s.id;return`<button class="stc ${lv?'as':''}" onclick="U({selStore:ST.find(x=>x.id==='${s.id}')})"><div style="width:46px;height:46px;border-radius:14px;background:${lv?'var(--grn0)':'var(--g1)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${lv?'var(--grn)':'var(--g5)'}">${I.store}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px"><div style="font-size:13px;font-weight:600;color:var(--g9)">${s.nm}</div>${lv?'<span style="font-size:9px;font-weight:700;color:var(--grn);background:var(--grn0);border-radius:6px;padding:3px 7px">ACTIVA</span>':''}${fv?'<span style="font-size:10px">❤️</span>':''}</div><div style="font-size:11px;color:var(--g5)">${s.ct}</div>${nx?`<div style="font-size:10px;color:var(--g4);margin-top:2px">${I.clk} ${nx.dt} · ${nx.s}–${nx.e}</div>`:''}</div><div style="color:var(--g4)">${I.cr}</div></button>`}).join('')}
 ${fil.length===0?`<div class="empty" style="margin:0 16px"><div class="em">🏪</div><div class="tt">No se encontraron tiendas</div></div>`:''}
 <div style="height:20px"></div></div>`}
@@ -1315,6 +1322,27 @@ ${sess.length?sess.map(x=>`<div class="sess-row" style="margin:0 16px 8px"><div>
 <div style="height:20px"></div></div>`}
 function toggleFav(id){U({favStore:S.favStore===id?null:id});toast(S.favStore===id?'Tienda favorita removida':'⭐ Tienda marcada como favorita','i')}
 
+// ===== GEOLOCATION =====
+function detectNearestStore(){
+  if(!navigator.geolocation){toast('Geolocalización no disponible','e');return}
+  toast('📍 Buscando tu ubicación...','i');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;
+    let best=null,bestDist=Infinity;
+    ST.forEach(s=>{
+      const d=Math.sqrt(Math.pow(lat-s.la,2)+Math.pow(lng-s.ln,2))*111;// approx km
+      if(d<bestDist){bestDist=d;best=s}
+    });
+    if(best&&bestDist<10){
+      S.nearStore=best;S.nearDist=Math.round(bestDist*10)/10;
+      U({favStore:best.id});
+      toast(`📍 Estás cerca de ${best.nm} (${S.nearDist}km)`,'s');
+    }else{
+      toast('No hay tienda AMPM cerca (>10km)','i');
+    }
+  },err=>{toast('No se pudo obtener ubicación','e')},{enableHighAccuracy:true,timeout:10000});
+}
+
 // ===== PROFILE =====
 function rProf(){const s=stats(),ach=getAch(),earned=ach.filter(a=>a.earned).length;
 return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
@@ -1325,7 +1353,7 @@ return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div class="st">Estadísticas</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[{em:'⚽',n:s.o,l:'Figuritas',cl:'var(--b6)'},{em:'🔍',n:s.m,l:'Faltan',cl:'var(--red)'},{em:'♻️',n:s.d,l:'Repetidas',cl:'var(--o5)'},{em:'🔄',n:s.t,l:'En cambio',cl:'var(--b5)'}].map(x=>`<div class="metric"><div style="font-size:20px;margin-bottom:2px">${x.em}</div><div class="n" style="color:${x.cl}">${x.n}</div><div class="lb">${x.l}</div></div>`).join('')}</div></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div class="st">🏅 Logros (${earned}/${ach.length})</div><div style="display:flex;flex-wrap:wrap">${ach.map(a=>`<div class="ach ${a.earned?'earned':'locked'}"><span class="ic">${a.earned?a.ic:'🔒'}</span><span class="nm">${a.nm}</span></div>`).join('')}</div></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:var(--g9)">Progreso del álbum</span><span style="font-size:13px;font-weight:700;color:var(--o5)">${s.p}%</span></div><div style="height:8px;background:var(--g2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${s.p}%;background:linear-gradient(90deg,var(--b6),var(--o5));border-radius:4px"></div></div><div style="font-size:11px;color:var(--g4);margin-top:6px">${s.o} de ${TOT} figuritas</div></div>
-<div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px"><button onclick="exportMissing()" style="flex:1;padding:12px;background:var(--w);border:1px solid var(--g2);border-radius:12px;font-size:13px;font-weight:600;color:var(--g7);display:flex;align-items:center;justify-content:center;gap:6px">${I.share} Compartir faltantes</button>${S.isAdmin?`<button onclick="U({showAdmin:true})" style="flex:1;padding:12px;background:var(--g9);color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">${I.gear} Panel Admin</button>`:''}</div>
+<div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px">${S.isAdmin?`<button onclick="U({showAdmin:true})" style="flex:1;padding:12px;background:var(--g9);color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">${I.gear} Panel Admin</button>`:''}</div>
 <div style="padding:0 16px;margin-bottom:16px"><div class="dm-toggle" onclick="toggleSound()" style="margin-bottom:8px"><div class="dm-track ${_soundOn?'on':''}" style="background:${_soundOn?'var(--b5)':'var(--g3)'}"><div class="dm-knob" style="${_soundOn?'left:22px':'left:2px'}"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${_soundOn?'🔊 Sonidos activados':'🔇 Sonidos desactivados'}</div><div style="font-size:11px;color:var(--g5)">Efectos al agregar figuritas</div></div></div><div class="dm-toggle" onclick="toggleDark()"><div class="dm-track ${S.darkMode?'on':''}"><div class="dm-knob"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${S.darkMode?'🌙 Modo oscuro':'☀️ Modo claro'}</div><div style="font-size:11px;color:var(--g5)">Tocá para cambiar</div></div></div></div>
 <button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="doSignOut()">Cerrar sesión</button>
 </div>`}
@@ -1848,7 +1876,7 @@ function admSaveAd(){const br=document.getElementById('adBr').value,tx=document.
 
 // ===== BIND EVENTS =====
 function bEv(){
-  const as=document.getElementById('aS2');if(as){as.oninput=()=>{S.aSrch=as.value;R()}}
+  const as=document.getElementById('aS2');if(as){as.oninput=()=>{S.aSrch=as.value;R();setTimeout(()=>{const el=document.getElementById('aS2');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},0)}}
   const ss=document.getElementById('stS');if(ss){ss.oninput=()=>{S.stSrch=ss.value;R();setTimeout(()=>{const el=document.getElementById('stS');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},0)}}
   const ws=document.getElementById('wS');if(ws){ws.oninput=()=>{S.wSrch=ws.value;R();setTimeout(()=>{const el=document.getElementById('wS');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},0)}}
   const pk=document.getElementById('pkSrch');if(pk){pk.oninput=()=>{S.packSrch=pk.value;R();setTimeout(()=>{const el=document.getElementById('pkSrch');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},0)}}
