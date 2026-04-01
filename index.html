@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#003B73">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>AMPM Figuritas – Mundial 2026</title>
+<title>Figuritas by AMPM – Mundial 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--b9:#001F3F;--b8:#003B73;--b7:#004E9A;--b6:#0065C1;--b5:#0078D4;--b4:#3A9AE8;--b1:#DCE9F7;--b0:#EFF5FC;--o7:#C45500;--o6:#E86A10;--o5:#FF7A1A;--o4:#FF923E;--o1:#FFF0E0;--o0:#FFF8F0;--g9:#1A1D21;--g7:#374151;--g5:#6B7280;--g4:#9CA3AF;--g3:#D1D5DB;--g2:#E5E7EB;--g1:#F3F4F6;--g0:#F9FAFB;--w:#FFF;--red:#EF4444;--grn:#22C55E;--grn0:#F0FDF4;--ylw:#EAB308}
@@ -509,27 +509,27 @@ async function checkSupabaseSession(){
 // ========== DATA ==========
 const TEAMS=[
 // Group A
-{c:"MEX",n:"México",f:"🇲🇽",g:"A"},{c:"ZAF",n:"Sudáfrica",f:"🇿🇦",g:"A"},{c:"KOR",n:"Corea del Sur",f:"🇰🇷",g:"A"},{c:"PDA",n:"UEFA Playoff D",f:"⏳",g:"A"},
+{c:"MEX",n:"México",f:"🇲🇽",g:"A"},{c:"ZAF",n:"Sudáfrica",f:"🇿🇦",g:"A"},{c:"KOR",n:"Corea del Sur",f:"🇰🇷",g:"A"},{c:"CZE",n:"Chequia",f:"🇨🇿",g:"A"},
 // Group B
-{c:"CAN",n:"Canadá",f:"🇨🇦",g:"B"},{c:"SUI",n:"Suiza",f:"🇨🇭",g:"B"},{c:"QAT",n:"Catar",f:"🇶🇦",g:"B"},{c:"PBA",n:"UEFA Playoff A",f:"⏳",g:"B"},
+{c:"CAN",n:"Canadá",f:"🇨🇦",g:"B"},{c:"SUI",n:"Suiza",f:"🇨🇭",g:"B"},{c:"QAT",n:"Catar",f:"🇶🇦",g:"B"},{c:"BIH",n:"Bosnia y Herzegovina",f:"🇧🇦",g:"B"},
 // Group C
 {c:"BRA",n:"Brasil",f:"🇧🇷",g:"C"},{c:"MAR",n:"Marruecos",f:"🇲🇦",g:"C"},{c:"HAI",n:"Haití",f:"🇭🇹",g:"C"},{c:"SCO",n:"Escocia",f:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",g:"C"},
 // Group D
-{c:"USA",n:"Estados Unidos",f:"🇺🇸",g:"D"},{c:"PAR",n:"Paraguay",f:"🇵🇾",g:"D"},{c:"AUS",n:"Australia",f:"🇦🇺",g:"D"},{c:"PCA",n:"UEFA Playoff C",f:"⏳",g:"D"},
+{c:"USA",n:"Estados Unidos",f:"🇺🇸",g:"D"},{c:"PAR",n:"Paraguay",f:"🇵🇾",g:"D"},{c:"AUS",n:"Australia",f:"🇦🇺",g:"D"},{c:"TUR",n:"Turquía",f:"🇹🇷",g:"D"},
 // Group E
 {c:"GER",n:"Alemania",f:"🇩🇪",g:"E"},{c:"CUW",n:"Curazao",f:"🇨🇼",g:"E"},{c:"CIV",n:"Costa de Marfil",f:"🇨🇮",g:"E"},{c:"ECU",n:"Ecuador",f:"🇪🇨",g:"E"},
 // Group F
-{c:"NED",n:"Países Bajos",f:"🇳🇱",g:"F"},{c:"JPN",n:"Japón",f:"🇯🇵",g:"F"},{c:"TUN",n:"Túnez",f:"🇹🇳",g:"F"},{c:"PBB",n:"UEFA Playoff B",f:"⏳",g:"F"},
+{c:"NED",n:"Países Bajos",f:"🇳🇱",g:"F"},{c:"JPN",n:"Japón",f:"🇯🇵",g:"F"},{c:"TUN",n:"Túnez",f:"🇹🇳",g:"F"},{c:"SWE",n:"Suecia",f:"🇸🇪",g:"F"},
 // Group G
 {c:"BEL",n:"Bélgica",f:"🇧🇪",g:"G"},{c:"EGY",n:"Egipto",f:"🇪🇬",g:"G"},{c:"IRN",n:"Irán",f:"🇮🇷",g:"G"},{c:"NZL",n:"Nueva Zelanda",f:"🇳🇿",g:"G"},
 // Group H
 {c:"ESP",n:"España",f:"🇪🇸",g:"H"},{c:"CPV",n:"Cabo Verde",f:"🇨🇻",g:"H"},{c:"SAU",n:"Arabia Saudita",f:"🇸🇦",g:"H"},{c:"URU",n:"Uruguay",f:"🇺🇾",g:"H"},
 // Group I
-{c:"FRA",n:"Francia",f:"🇫🇷",g:"I"},{c:"SEN",n:"Senegal",f:"🇸🇳",g:"I"},{c:"NOR",n:"Noruega",f:"🇳🇴",g:"I"},{c:"IP2",n:"Intercont. Playoff 2",f:"⏳",g:"I"},
+{c:"FRA",n:"Francia",f:"🇫🇷",g:"I"},{c:"SEN",n:"Senegal",f:"🇸🇳",g:"I"},{c:"NOR",n:"Noruega",f:"🇳🇴",g:"I"},{c:"IRQ",n:"Irak",f:"🇮🇶",g:"I"},
 // Group J
 {c:"ARG",n:"Argentina",f:"🇦🇷",g:"J"},{c:"ALG",n:"Argelia",f:"🇩🇿",g:"J"},{c:"AUT",n:"Austria",f:"🇦🇹",g:"J"},{c:"JOR",n:"Jordania",f:"🇯🇴",g:"J"},
 // Group K
-{c:"POR",n:"Portugal",f:"🇵🇹",g:"K"},{c:"UZB",n:"Uzbekistán",f:"🇺🇿",g:"K"},{c:"COL",n:"Colombia",f:"🇨🇴",g:"K"},{c:"IP1",n:"Intercont. Playoff 1",f:"⏳",g:"K"},
+{c:"POR",n:"Portugal",f:"🇵🇹",g:"K"},{c:"UZB",n:"Uzbekistán",f:"🇺🇿",g:"K"},{c:"COL",n:"Colombia",f:"🇨🇴",g:"K"},{c:"COD",n:"RD Congo",f:"🇨🇩",g:"K"},
 // Group L
 {c:"ENG",n:"Inglaterra",f:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",g:"L"},{c:"CRO",n:"Croacia",f:"🇭🇷",g:"L"},{c:"GHA",n:"Ghana",f:"🇬🇭",g:"L"},{c:"PAN",n:"Panamá",f:"🇵🇦",g:"L"}
 ];
@@ -985,7 +985,7 @@ if(S.rcvStk)h+=rReceive();
 if(S.showAvatar)h+=rAvatarPicker();
 if(S.packAnim)h+=`<div class="pack-reveal"><div class="pack-envelope"></div><p style="color:rgba(255,255,255,.5);margin-top:20px;font-size:13px">Tocá para abrir</p></div>`;
 // Logo header bar (persistent across all views)
-h+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--w);border-bottom:1px solid var(--g2)"><div style="display:flex;align-items:center;gap:8px">${LOGO(90,S.darkMode)}<span style="font-size:11px;font-weight:600;color:var(--g4)">Figuritas</span></div><div style="font-size:10px;color:var(--g4)">${S.user?.ct||''}</div></div>`;
+h+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--w);border-bottom:1px solid var(--g2)"><div style="display:flex;align-items:center;gap:8px">${LOGO(90,S.darkMode)}<span style="font-size:11px;font-weight:600;color:var(--g4)">Figuritas by AMPM</span></div><div style="font-size:10px;color:var(--g4)">${S.user?.ct||''}</div></div>`;
 if(S.tab==='home')h+=rHome();
 else if(S.tab==='album')h+=S.selTeam?rTeam():rAlbum();
 else if(S.tab==='exchange')h+=rExch();
@@ -1016,7 +1016,7 @@ function finishOnboard(){LS.s('onboarded',true);U({showOnboard:false})}
 function checkOnboard(){if(!LS.g('onboarded',false)){U({showOnboard:true,onboardSlide:0})}}
 
 function rAuth(){
-if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
+if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">by AMPM · Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
 return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Casi listo!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">¿Cómo te llamás y de dónde sos?</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button></div></div>`}
 function bAuth(){const n=document.getElementById('aN'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()){const uid=S.user?.id||'u-'+Date.now();U({user:{...S.user,id:uid,nm:S.authN.trim(),ph:'',ct:S.authC},authStep:0});LS.s('userCity',S.authC);checkOnboard()}}}}
 function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U({isAdmin:true,showAdmin:true})}else if(pw!==null){alert('Contraseña incorrecta')}}
@@ -1361,14 +1361,14 @@ return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
 // ===== ADMIN PANEL =====
 // ===== TBD TEAM MANAGEMENT =====
 const TBD_OPTIONS={
-  PDA:[{c:'DEN',n:'Dinamarca',f:'🇩🇰'},{c:'CZE',n:'Chequia',f:'🇨🇿'},{c:'IRL',n:'Irlanda',f:'🇮🇪'},{c:'MKD',n:'Macedonia del N.',f:'🇲🇰'}],
-  PBA:[{c:'ITA',n:'Italia',f:'🇮🇹'},{c:'WAL',n:'Gales',f:'🏴󠁧󠁢󠁷󠁬󠁳󠁿'},{c:'BIH',n:'Bosnia',f:'🇧🇦'},{c:'NIR',n:'Irlanda del N.',f:'🇬🇧'}],
-  PCA:[{c:'TUR',n:'Turquía',f:'🇹🇷'},{c:'ROU',n:'Rumania',f:'🇷🇴'},{c:'SVK',n:'Eslovaquia',f:'🇸🇰'},{c:'KOS',n:'Kosovo',f:'🇽🇰'}],
-  PBB:[{c:'UKR',n:'Ucrania',f:'🇺🇦'},{c:'SWE',n:'Suecia',f:'🇸🇪'},{c:'POL',n:'Polonia',f:'🇵🇱'},{c:'ALB',n:'Albania',f:'🇦🇱'}],
-  IP1:[{c:'COD',n:'RD Congo',f:'🇨🇩'},{c:'JAM',n:'Jamaica',f:'🇯🇲'},{c:'NCL',n:'Nueva Caledonia',f:'🇳🇨'}],
-  IP2:[{c:'IRQ',n:'Irak',f:'🇮🇶'},{c:'BOL',n:'Bolivia',f:'🇧🇴'},{c:'SUR',n:'Surinam',f:'🇸🇷'}]
+  CZE:[{c:'DEN',n:'Dinamarca',f:'🇩🇰'},{c:'CZE',n:'Chequia',f:'🇨🇿'},{c:'IRL',n:'Irlanda',f:'🇮🇪'},{c:'MKD',n:'Macedonia del N.',f:'🇲🇰'}],
+  BIH:[{c:'ITA',n:'Italia',f:'🇮🇹'},{c:'WAL',n:'Gales',f:'🏴󠁧󠁢󠁷󠁬󠁳󠁿'},{c:'BIH',n:'Bosnia',f:'🇧🇦'},{c:'NIR',n:'Irlanda del N.',f:'🇬🇧'}],
+  TUR:[{c:'TUR',n:'Turquía',f:'🇹🇷'},{c:'ROU',n:'Rumania',f:'🇷🇴'},{c:'SVK',n:'Eslovaquia',f:'🇸🇰'},{c:'KOS',n:'Kosovo',f:'🇽🇰'}],
+  SWE:[{c:'UKR',n:'Ucrania',f:'🇺🇦'},{c:'SWE',n:'Suecia',f:'🇸🇪'},{c:'POL',n:'Polonia',f:'🇵🇱'},{c:'ALB',n:'Albania',f:'🇦🇱'}],
+  COD:[{c:'COD',n:'RD Congo',f:'🇨🇩'},{c:'JAM',n:'Jamaica',f:'🇯🇲'},{c:'NCL',n:'Nueva Caledonia',f:'🇳🇨'}],
+  IRQ:[{c:'IRQ',n:'Irak',f:'🇮🇶'},{c:'BOL',n:'Bolivia',f:'🇧🇴'},{c:'SUR',n:'Surinam',f:'🇸🇷'}]
 };
-function getTBDTeams(){return TEAMS.filter(t=>['PDA','PBA','PCA','PBB','IP1','IP2'].includes(t.c))}
+function getTBDTeams(){return TEAMS.filter(t=>['CZE','BIH','TUR','SWE','COD','IRQ'].includes(t.c))}
 function getTBDOptions(code){return TBD_OPTIONS[code]||[]}
 function setTBDTeam(slotCode,newCode,newName,newFlag){
   const idx=TEAMS.findIndex(t=>t.c===slotCode);
@@ -1380,7 +1380,7 @@ function setTBDTeam(slotCode,newCode,newName,newFlag){
   U({});toast(`${newFlag} ${newName} asignado al Grupo ${TEAMS[idx].g}`)
 }
 // Restore saved TBD assignments on load
-(function(){['PDA','PBA','PCA','PBB','IP1','IP2'].forEach(code=>{
+(function(){['CZE','BIH','TUR','SWE','COD','IRQ'].forEach(code=>{
   const saved=LS.g('tbd_'+code,null);
   if(saved){const idx=TEAMS.findIndex(t=>t.c===code);if(idx>-1){TEAMS[idx]={...TEAMS[idx],c:saved.c,n:saved.n,f:saved.f};ALL.filter(x=>x.tc===code).forEach(x=>{x.tc=saved.c;x.tn=saved.n;x.fl=saved.f;});}}
 });})();
@@ -1388,29 +1388,29 @@ function setTBDTeam(slotCode,newCode,newName,newFlag){
 // ===== PRODE / PREDICCIONES =====
 const MATCHES=[
 // Group A - Jun 11,18,25
-{id:"m1",g:"A",d:"2026-06-11",h:"MEX",a:"ZAF",v:"Cd. de México"},{id:"m2",g:"A",d:"2026-06-11",h:"KOR",a:"PDA",v:"Guadalajara"},
-{id:"m3",g:"A",d:"2026-06-18",h:"PDA",a:"ZAF",v:"Atlanta"},{id:"m4",g:"A",d:"2026-06-18",h:"MEX",a:"KOR",v:"Guadalajara"},
-{id:"m5",g:"A",d:"2026-06-25",h:"ZAF",a:"KOR",v:"Cd. de México"},{id:"m6",g:"A",d:"2026-06-25",h:"PDA",a:"MEX",v:"Atlanta"},
+{id:"m1",g:"A",d:"2026-06-11",h:"MEX",a:"ZAF",v:"Cd. de México"},{id:"m2",g:"A",d:"2026-06-11",h:"KOR",a:"CZE",v:"Guadalajara"},
+{id:"m3",g:"A",d:"2026-06-18",h:"CZE",a:"ZAF",v:"Atlanta"},{id:"m4",g:"A",d:"2026-06-18",h:"MEX",a:"KOR",v:"Guadalajara"},
+{id:"m5",g:"A",d:"2026-06-25",h:"ZAF",a:"KOR",v:"Cd. de México"},{id:"m6",g:"A",d:"2026-06-25",h:"CZE",a:"MEX",v:"Atlanta"},
 // Group B - Jun 12,18,24
-{id:"m7",g:"B",d:"2026-06-12",h:"CAN",a:"PBA",v:"Toronto"},{id:"m8",g:"B",d:"2026-06-13",h:"QAT",a:"SUI",v:"San Francisco"},
-{id:"m9",g:"B",d:"2026-06-18",h:"SUI",a:"PBA",v:"Los Ángeles"},{id:"m10",g:"B",d:"2026-06-18",h:"CAN",a:"QAT",v:"Vancouver"},
-{id:"m11",g:"B",d:"2026-06-24",h:"PBA",a:"QAT",v:"Toronto"},{id:"m12",g:"B",d:"2026-06-24",h:"SUI",a:"CAN",v:"Vancouver"},
+{id:"m7",g:"B",d:"2026-06-12",h:"CAN",a:"BIH",v:"Toronto"},{id:"m8",g:"B",d:"2026-06-13",h:"QAT",a:"SUI",v:"San Francisco"},
+{id:"m9",g:"B",d:"2026-06-18",h:"SUI",a:"BIH",v:"Los Ángeles"},{id:"m10",g:"B",d:"2026-06-18",h:"CAN",a:"QAT",v:"Vancouver"},
+{id:"m11",g:"B",d:"2026-06-24",h:"BIH",a:"QAT",v:"Toronto"},{id:"m12",g:"B",d:"2026-06-24",h:"SUI",a:"CAN",v:"Vancouver"},
 // Group C - Jun 13,19,24
 {id:"m13",g:"C",d:"2026-06-13",h:"BRA",a:"MAR",v:"Nueva York"},{id:"m14",g:"C",d:"2026-06-13",h:"HAI",a:"SCO",v:"Boston"},
 {id:"m15",g:"C",d:"2026-06-19",h:"SCO",a:"MAR",v:"Boston"},{id:"m16",g:"C",d:"2026-06-19",h:"BRA",a:"HAI",v:"Nueva York"},
 {id:"m17",g:"C",d:"2026-06-24",h:"MAR",a:"HAI",v:"Atlanta"},{id:"m18",g:"C",d:"2026-06-24",h:"SCO",a:"BRA",v:"Boston"},
 // Group D - Jun 12,19,25
-{id:"m19",g:"D",d:"2026-06-12",h:"USA",a:"PAR",v:"Los Ángeles"},{id:"m20",g:"D",d:"2026-06-13",h:"AUS",a:"PCA",v:"Vancouver"},
-{id:"m21",g:"D",d:"2026-06-19",h:"USA",a:"AUS",v:"Seattle"},{id:"m22",g:"D",d:"2026-06-19",h:"PAR",a:"PCA",v:"Los Ángeles"},
-{id:"m23",g:"D",d:"2026-06-25",h:"PCA",a:"USA",v:"Seattle"},{id:"m24",g:"D",d:"2026-06-25",h:"AUS",a:"PAR",v:"Vancouver"},
+{id:"m19",g:"D",d:"2026-06-12",h:"USA",a:"PAR",v:"Los Ángeles"},{id:"m20",g:"D",d:"2026-06-13",h:"AUS",a:"TUR",v:"Vancouver"},
+{id:"m21",g:"D",d:"2026-06-19",h:"USA",a:"AUS",v:"Seattle"},{id:"m22",g:"D",d:"2026-06-19",h:"PAR",a:"TUR",v:"Los Ángeles"},
+{id:"m23",g:"D",d:"2026-06-25",h:"TUR",a:"USA",v:"Seattle"},{id:"m24",g:"D",d:"2026-06-25",h:"AUS",a:"PAR",v:"Vancouver"},
 // Group E - Jun 14,20,25
 {id:"m25",g:"E",d:"2026-06-14",h:"GER",a:"CUW",v:"Houston"},{id:"m26",g:"E",d:"2026-06-14",h:"CIV",a:"ECU",v:"Filadelfia"},
 {id:"m27",g:"E",d:"2026-06-20",h:"GER",a:"CIV",v:"Toronto"},{id:"m28",g:"E",d:"2026-06-20",h:"ECU",a:"CUW",v:"Kansas City"},
 {id:"m29",g:"E",d:"2026-06-25",h:"CUW",a:"CIV",v:"Filadelfia"},{id:"m30",g:"E",d:"2026-06-25",h:"ECU",a:"GER",v:"Houston"},
 // Group F - Jun 14,20,25
-{id:"m31",g:"F",d:"2026-06-14",h:"NED",a:"JPN",v:"Dallas"},{id:"m32",g:"F",d:"2026-06-14",h:"PBB",a:"TUN",v:"Guadalajara"},
-{id:"m33",g:"F",d:"2026-06-20",h:"NED",a:"PBB",v:"Guadalajara"},{id:"m34",g:"F",d:"2026-06-20",h:"JPN",a:"TUN",v:"Dallas"},
-{id:"m35",g:"F",d:"2026-06-25",h:"TUN",a:"NED",v:"Kansas City"},{id:"m36",g:"F",d:"2026-06-25",h:"PBB",a:"JPN",v:"Dallas"},
+{id:"m31",g:"F",d:"2026-06-14",h:"NED",a:"JPN",v:"Dallas"},{id:"m32",g:"F",d:"2026-06-14",h:"SWE",a:"TUN",v:"Guadalajara"},
+{id:"m33",g:"F",d:"2026-06-20",h:"NED",a:"SWE",v:"Guadalajara"},{id:"m34",g:"F",d:"2026-06-20",h:"JPN",a:"TUN",v:"Dallas"},
+{id:"m35",g:"F",d:"2026-06-25",h:"TUN",a:"NED",v:"Kansas City"},{id:"m36",g:"F",d:"2026-06-25",h:"SWE",a:"JPN",v:"Dallas"},
 // Group G - Jun 15,21,26
 {id:"m37",g:"G",d:"2026-06-15",h:"BEL",a:"EGY",v:"Seattle"},{id:"m38",g:"G",d:"2026-06-15",h:"IRN",a:"NZL",v:"Los Ángeles"},
 {id:"m39",g:"G",d:"2026-06-21",h:"BEL",a:"IRN",v:"Los Ángeles"},{id:"m40",g:"G",d:"2026-06-21",h:"NZL",a:"EGY",v:"Seattle"},
@@ -1420,17 +1420,17 @@ const MATCHES=[
 {id:"m45",g:"H",d:"2026-06-21",h:"ESP",a:"SAU",v:"Atlanta"},{id:"m46",g:"H",d:"2026-06-21",h:"URU",a:"CPV",v:"Miami"},
 {id:"m47",g:"H",d:"2026-06-26",h:"CPV",a:"SAU",v:"Miami"},{id:"m48",g:"H",d:"2026-06-26",h:"URU",a:"ESP",v:"Guadalajara"},
 // Group I - Jun 16,22,26
-{id:"m49",g:"I",d:"2026-06-16",h:"FRA",a:"SEN",v:"Nueva York"},{id:"m50",g:"I",d:"2026-06-16",h:"IP2",a:"NOR",v:"Boston"},
-{id:"m51",g:"I",d:"2026-06-22",h:"FRA",a:"IP2",v:"Nueva York"},{id:"m52",g:"I",d:"2026-06-22",h:"NOR",a:"SEN",v:"Boston"},
-{id:"m53",g:"I",d:"2026-06-26",h:"SEN",a:"IP2",v:"Toronto"},{id:"m54",g:"I",d:"2026-06-26",h:"NOR",a:"FRA",v:"Boston"},
+{id:"m49",g:"I",d:"2026-06-16",h:"FRA",a:"SEN",v:"Nueva York"},{id:"m50",g:"I",d:"2026-06-16",h:"IRQ",a:"NOR",v:"Boston"},
+{id:"m51",g:"I",d:"2026-06-22",h:"FRA",a:"IRQ",v:"Nueva York"},{id:"m52",g:"I",d:"2026-06-22",h:"NOR",a:"SEN",v:"Boston"},
+{id:"m53",g:"I",d:"2026-06-26",h:"SEN",a:"IRQ",v:"Toronto"},{id:"m54",g:"I",d:"2026-06-26",h:"NOR",a:"FRA",v:"Boston"},
 // Group J - Jun 16,22,27
 {id:"m55",g:"J",d:"2026-06-16",h:"ARG",a:"ALG",v:"Kansas City"},{id:"m56",g:"J",d:"2026-06-16",h:"AUT",a:"JOR",v:"San Francisco"},
 {id:"m57",g:"J",d:"2026-06-22",h:"ARG",a:"AUT",v:"Dallas"},{id:"m58",g:"J",d:"2026-06-22",h:"JOR",a:"ALG",v:"San Francisco"},
 {id:"m59",g:"J",d:"2026-06-27",h:"ALG",a:"AUT",v:"Kansas City"},{id:"m60",g:"J",d:"2026-06-27",h:"JOR",a:"ARG",v:"Dallas"},
 // Group K - Jun 17,23,27
-{id:"m61",g:"K",d:"2026-06-17",h:"POR",a:"IP1",v:"Houston"},{id:"m62",g:"K",d:"2026-06-17",h:"UZB",a:"COL",v:"Cd. de México"},
-{id:"m63",g:"K",d:"2026-06-23",h:"POR",a:"UZB",v:"Houston"},{id:"m64",g:"K",d:"2026-06-23",h:"COL",a:"IP1",v:"Cd. de México"},
-{id:"m65",g:"K",d:"2026-06-27",h:"IP1",a:"UZB",v:"Houston"},{id:"m66",g:"K",d:"2026-06-27",h:"COL",a:"POR",v:"Cd. de México"},
+{id:"m61",g:"K",d:"2026-06-17",h:"POR",a:"COD",v:"Houston"},{id:"m62",g:"K",d:"2026-06-17",h:"UZB",a:"COL",v:"Cd. de México"},
+{id:"m63",g:"K",d:"2026-06-23",h:"POR",a:"UZB",v:"Houston"},{id:"m64",g:"K",d:"2026-06-23",h:"COL",a:"COD",v:"Cd. de México"},
+{id:"m65",g:"K",d:"2026-06-27",h:"COD",a:"UZB",v:"Houston"},{id:"m66",g:"K",d:"2026-06-27",h:"COL",a:"POR",v:"Cd. de México"},
 // Group L - Jun 17,23,27
 {id:"m67",g:"L",d:"2026-06-17",h:"ENG",a:"CRO",v:"Dallas"},{id:"m68",g:"L",d:"2026-06-17",h:"GHA",a:"PAN",v:"Toronto"},
 {id:"m69",g:"L",d:"2026-06-23",h:"ENG",a:"GHA",v:"Boston"},{id:"m70",g:"L",d:"2026-06-23",h:"PAN",a:"CRO",v:"Toronto"},
@@ -1646,8 +1646,8 @@ const JERSEY_COLORS={
   ARG:{p:'#75AADB',s:'#FFFFFF',n:'Argentina'},ALG:{p:'#006233',s:'#FFFFFF',n:'Argelia'},AUT:{p:'#ED2939',s:'#FFFFFF',n:'Austria'},JOR:{p:'#FFFFFF',s:'#007A3D',n:'Jordania'},
   POR:{p:'#006847',s:'#FF0000',n:'Portugal'},UZB:{p:'#FFFFFF',s:'#1EB53A',n:'Uzbekistán'},COL:{p:'#FCD116',s:'#003893',n:'Colombia'},
   ENG:{p:'#FFFFFF',s:'#002366',n:'Inglaterra'},CRO:{p:'#FF0000',s:'#FFFFFF',n:'Croacia'},GHA:{p:'#FFFFFF',s:'#006B3F',n:'Ghana'},PAN:{p:'#DA121A',s:'#003DA5',n:'Panamá'},
-  PDA:{p:'#888888',s:'#CCCCCC',n:'Playoff D'},PBA:{p:'#888888',s:'#CCCCCC',n:'Playoff A'},PCA:{p:'#888888',s:'#CCCCCC',n:'Playoff C'},PBB:{p:'#888888',s:'#CCCCCC',n:'Playoff B'},
-  IP1:{p:'#888888',s:'#CCCCCC',n:'Intercont. 1'},IP2:{p:'#888888',s:'#CCCCCC',n:'Intercont. 2'}
+  CZE:{p:'#CE1126',s:'#FFFFFF',n:'Chequia'},BIH:{p:'#002395',s:'#FFFFFF',n:'Bosnia y Herzegovina'},TUR:{p:'#E30A17',s:'#FFFFFF',n:'Turquía'},SWE:{p:'#006AA7',s:'#FECC00',n:'Suecia'},
+  COD:{p:'#007FFF',s:'#CE1021',n:'RD Congo'},IRQ:{p:'#007A3D',s:'#FFFFFF',n:'Irak'}
 };
 
 function avatarSVG(skin,teamCode,size=80){
