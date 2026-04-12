@@ -435,23 +435,36 @@ async function fetchGlobalStats(){
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  // In Capacitor, try Browser plugin first (SFSafariViewController), fallback to in-webview redirect
   if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
     const{data,error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
     if(error){toast('Error: '+error.message,'e');return}
-    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover'})}
+    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover',toolbarColor:'#003B73'})}
   }else{
-    // Web or Capacitor without Browser plugin — redirect in same window (stays in WKWebView)
     const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
   }
 }
 async function signInWithApple(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
-    const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
-    if(error){toast('Error: '+error.message,'e');return}
-    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover'})}
+  // Try native Sign in with Apple first (required by App Store)
+  if(window.Capacitor && window.Capacitor.isNativePlatform()){
+    try{
+      const SignInWithApple=window.Capacitor.Plugins?.SignInWithApple;
+      if(SignInWithApple){
+        const res=await SignInWithApple.authorize({clientId:'com.ampm.figuritas',redirectURI:'https://aiknysxsjlodcrzzknbt.supabase.co/auth/v1/callback',scopes:'email name',state:Math.random().toString(36).substring(7)});
+        if(res?.response?.identityToken){
+          const{data,error}=await supaClient.auth.signInWithIdToken({provider:'apple',token:res.response.identityToken,nonce:res.response.nonce||undefined});
+          if(error){toast('Error Apple: '+error.message,'e')}
+          return;
+        }
+      }
+    }catch(e){console.log('Native Apple Sign-In failed, falling back to OAuth:',e)}
+    // Fallback to OAuth via in-app browser
+    if(window.Capacitor.Plugins?.Browser){
+      const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
+      if(error){toast('Error: '+error.message,'e');return}
+      if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover',toolbarColor:'#003B73'})}
+    }
   }else{
     const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
@@ -536,13 +549,13 @@ const TEAMS=[
 
 // Card types per team (20 cards each)
 const CT=["ESC","EQU","POR","POR","DEF","DEF","DEF","DEF","MED","MED","MED","MED","DEL","DEL","DEL","DEL","SUP","SUP","DT","STR"];
-const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"FIFA World Cup",TRF:"Trofeo",MSC:"Mascota",EMB:"Emblema",BAL:"Balón",SDO:"Estadio Sede"};
+const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"Mundial",TRF:"Trofeo",MSC:"Mascota",EMB:"Emblema",BAL:"Balón",SDO:"Estadio Sede"};
 const CC={ESC:"#EAB308",EQU:"#8B5CF6",POR:"#EF4444",DEF:"#22C55E",MED:"#0078D4",DEL:"#E86A10",SUP:"#6B7280",DT:"#374151",STR:"#F59E0B",FWC:"#B45309",TRF:"#D97706",MSC:"#7C3AED",EMB:"#0369A1",BAL:"#059669",SDO:"#4338CA"};
 const CI={ESC:"🛡️",EQU:"📸",POR:"🧤",DEF:"🛡",MED:"⚙️",DEL:"⚽",SUP:"🔄",DT:"👔",STR:"⭐",FWC:"🏆",TRF:"🏆",MSC:"🐾",EMB:"✨",BAL:"⚽",SDO:"🏟️"};
 
 // FWC intro section (20 stickers like real Panini album)
 const FWC_STICKERS=[
-{id:"FWC-1",nm:"Logo FIFA World Cup 2026",ct:"FWC",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-1",nm:"Logo Mundial 2026",ct:"FWC",ic:"🏆",rar:"special",foil:true},
 {id:"FWC-2",nm:"Trofeo Copa del Mundo (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
 {id:"FWC-3",nm:"Trofeo Copa del Mundo (2/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
 {id:"FWC-4",nm:"Mascota Oficial (1/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
@@ -600,7 +613,7 @@ let ALL=[];
 (function(){
 // First: FWC intro section (stickers 1-23)
 FWC_STICKERS.forEach((f,i)=>{
-  ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'FIFA World Cup 2026',fl:'🏆',ct:f.ct,nm:f.nm,
+  ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Mundial 2026',fl:'🏆',ct:f.ct,nm:f.nm,
     rar:f.rar,star:false,foil:f.foil||false});
 });
 // Then: 48 teams × 20 stickers each (stickers 24-983)
@@ -1073,7 +1086,7 @@ function rAlbum(){const s=stats(),q=S.aSrch.toLowerCase(),f=S.aFilt;
 const fwcStks=ALL.filter(x=>x.tc==='FWC');const fwcOwned=fwcStks.filter(x=>S.my[x.id]?.q>0).length,fwcPct=Math.round(fwcOwned/23*100);
 // Build all stickers in album order: FWC first, then teams by group
 let sections=[];
-if(!q||'fifa world cup trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'FIFA World Cup 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
+if(!q||'mundial trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'Mundial 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
 TEAMS.forEach(t=>{if(!q||t.n.toLowerCase().includes(q)||t.c.toLowerCase().includes(q)){sections.push({c:t.c,n:t.n,f:t.f,g:t.g,stickers:ALL.filter(x=>x.tc===t.c)})}});
 // Apply filter
 const applyFilt=(stks)=>stks.filter(x=>{const d=S.my[x.id];if(f==='own')return d?.q>0;if(f==='mis')return!d||d.q===0;if(f==='dup')return d?.q>1;if(f==='trd')return d?.a>0;return true});
