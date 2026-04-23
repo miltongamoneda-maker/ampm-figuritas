@@ -63,7 +63,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}input{font
 .tg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 20px}
 .tc{background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:14px;text-align:left;position:relative;overflow:hidden;transition:.1s}
 .tc:active{transform:scale(.97)}
-/* STICKER GRID - Panini style */
+/* STICKER GRID */
 .sg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px 16px 20px}
 .sc{border-radius:16px;padding:4px;width:100%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:transform .1s;border:2px solid var(--g2);background:var(--g1)}
 .sc:active{transform:scale(.9)}
@@ -438,7 +438,7 @@ async function signInWithGoogle(){
   if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
     const{data,error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
     if(error){toast('Error: '+error.message,'e');return}
-    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover',toolbarColor:'#003B73'})}
+    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'fullscreen',toolbarColor:'#003B73'})}
   }else{
     const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
@@ -446,8 +446,8 @@ async function signInWithGoogle(){
 }
 async function signInWithApple(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  // Try native Sign in with Apple first (required by App Store)
   if(window.Capacitor && window.Capacitor.isNativePlatform()){
+    // Try native Sign in with Apple (ASAuthorizationAppleIDProvider)
     try{
       const SignInWithApple=window.Capacitor.Plugins?.SignInWithApple;
       if(SignInWithApple){
@@ -458,13 +458,19 @@ async function signInWithApple(){
           return;
         }
       }
-    }catch(e){console.log('Native Apple Sign-In failed, falling back to OAuth:',e)}
-    // Fallback to OAuth via in-app browser
-    if(window.Capacitor.Plugins?.Browser){
-      const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
-      if(error){toast('Error: '+error.message,'e');return}
-      if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'popover',toolbarColor:'#003B73'})}
-    }
+    }catch(e){console.log('Native Apple Sign-In not available:',e)}
+    // Fallback: use in-app browser (SFSafariViewController fullscreen)
+    try{
+      if(window.Capacitor.Plugins?.Browser){
+        const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
+        if(error){toast('Error: '+error.message,'e');return}
+        if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'fullscreen',toolbarColor:'#003B73'})}
+        return;
+      }
+    }catch(e2){console.log('Browser fallback failed:',e2)}
+    // Last fallback: redirect within WKWebView
+    const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
+    if(error)toast('Error: '+error.message,'e');
   }else{
     const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
@@ -553,7 +559,7 @@ const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampis
 const CC={ESC:"#EAB308",EQU:"#8B5CF6",POR:"#EF4444",DEF:"#22C55E",MED:"#0078D4",DEL:"#E86A10",SUP:"#6B7280",DT:"#374151",STR:"#F59E0B",FWC:"#B45309",TRF:"#D97706",MSC:"#7C3AED",EMB:"#0369A1",BAL:"#059669",SDO:"#4338CA"};
 const CI={ESC:"🛡️",EQU:"📸",POR:"🧤",DEF:"🛡",MED:"⚙️",DEL:"⚽",SUP:"🔄",DT:"👔",STR:"⭐",FWC:"🏆",TRF:"🏆",MSC:"🐾",EMB:"✨",BAL:"⚽",SDO:"🏟️"};
 
-// FWC intro section (20 stickers like real Panini album)
+// FWC intro section (20 stickers)
 const FWC_STICKERS=[
 {id:"FWC-1",nm:"Logo Mundial 2026",ct:"FWC",ic:"🏆",rar:"special",foil:true},
 {id:"FWC-2",nm:"Trofeo Copa del Mundo (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
@@ -821,10 +827,7 @@ function getRank(){
 }
 function getMissing(){return ALL.filter(x=>!S.my[x.id]||S.my[x.id].q===0)}
 function getMatches(){const missing=getMissing().map(x=>x.id);return S.exs.filter(e=>e.st==='pending'&&e.of.some(o=>missing.includes(o.k)))}
-async function exportMissing(){const m=getMissing();const byTeam={};m.forEach(x=>{if(!byTeam[x.tc])byTeam[x.tc]=[];byTeam[x.tc].push(`#${x.num} ${x.nm}`)});let txt=`⚽ AMPM Figuritas Mundial 2026\n📋 Mi lista de faltantes (${m.length}/${TOT})\n\n`;
-Object.keys(byTeam).forEach(c=>{const t=TEAMS.find(x=>x.c===c);txt+=`${t.f} ${t.n} (${byTeam[c].length}):\n${byTeam[c].join(', ')}\n\n`});
-txt+=`\n🏪 Buscame en las jornadas de intercambio AMPM!\n📲 Descargá la app: figuritas.ampm.ni`;
-try{if(navigator.share){await navigator.share({title:'Mis faltantes - AMPM Figuritas',text:txt})}else{await navigator.clipboard?.writeText(txt);toast('Lista copiada al portapapeles','i')}}catch(e){try{await navigator.clipboard?.writeText(txt);toast('Lista copiada al portapapeles','i')}catch(e2){toast('No se pudo compartir','e')}}}
+
 
 // ===== DARK MODE =====
 function toggleDark(){const d=!S.darkMode;document.body.classList.toggle('dark',d);LS.s('dark',d);U({darkMode:d})}
@@ -872,19 +875,7 @@ function quickRemove(id){
 }
 
 // ===== SHARE PROGRESS (WhatsApp sticker-style) =====
-async function shareProgress(){
-  const s=stats();
-  const topTeams=TEAMS.filter(t=>t.f!=='⏳').map(t=>{const p=tProg(t.c);return{...t,...p}}).filter(t=>t.p>0).sort((a,b)=>b.p-a.p).slice(0,3);
-  let txt=`⚽🏆 *MI ÁLBUM MUNDIAL 2026* 🏆⚽\n\n`;
-  txt+=`📊 Progreso: *${s.p}%* (${s.o}/${TOT})\n`;
-  txt+=`✅ Tengo: ${s.o} figuritas\n`;
-  txt+=`❌ Me faltan: ${s.m}\n`;
-  txt+=`🔄 Repetidas: ${s.d} (para cambio)\n\n`;
-  if(topTeams.length){txt+=`🔥 Mis equipos más completos:\n`;topTeams.forEach(t=>{txt+=`${t.f} ${t.n}: ${t.o}/${t.t} (${t.p}%)\n`});txt+='\n'}
-  txt+=`🏪 Intercambiá figuritas en AMPM Nicaragua\n`;
-  txt+=`📲 ¡Bajá la app y completá tu álbum!`;
-  try{if(navigator.share){await navigator.share({title:'Mi progreso - Figuritas Mundial 2026',text:txt})}else{await navigator.clipboard?.writeText(txt);toast('Progreso copiado al portapapeles','i')}}catch(e){try{await navigator.clipboard?.writeText(txt);toast('Progreso copiado al portapapeles','i')}catch(e2){toast('No se pudo compartir','e')}}
-}
+
 
 function getRecentActivity(){return LS.g('actLog',[])}
 // ===== CELEBRATIONS =====
