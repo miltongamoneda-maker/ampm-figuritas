@@ -447,31 +447,23 @@ async function signInWithGoogle(){
 async function signInWithApple(){
   if(!supaClient){toast('Supabase no configurado','e');return}
   if(window.Capacitor && window.Capacitor.isNativePlatform()){
-    // Try native Sign in with Apple (ASAuthorizationAppleIDProvider)
+    // Try native Sign in with Apple first
     try{
-      const SignInWithApple=window.Capacitor.Plugins?.SignInWithApple;
-      if(SignInWithApple){
-        const res=await SignInWithApple.authorize({clientId:'com.ampm.figuritas',redirectURI:'https://aiknysxsjlodcrzzknbt.supabase.co/auth/v1/callback',scopes:'email name',state:Math.random().toString(36).substring(7)});
+      const SIA=window.Capacitor.Plugins?.SignInWithApple;
+      if(SIA){
+        const res=await SIA.authorize({clientId:'com.ampm.figuritas',redirectURI:'https://aiknysxsjlodcrzzknbt.supabase.co/auth/v1/callback',scopes:'email name',state:Math.random().toString(36).substring(7)});
         if(res?.response?.identityToken){
           const{data,error}=await supaClient.auth.signInWithIdToken({provider:'apple',token:res.response.identityToken,nonce:res.response.nonce||undefined});
           if(error){toast('Error Apple: '+error.message,'e')}
           return;
         }
       }
-    }catch(e){console.log('Native Apple Sign-In not available:',e)}
-    // Fallback: use in-app browser (SFSafariViewController fullscreen)
-    try{
-      if(window.Capacitor.Plugins?.Browser){
-        const{data,error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
-        if(error){toast('Error: '+error.message,'e');return}
-        if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'fullscreen',toolbarColor:'#003B73'})}
-        return;
-      }
-    }catch(e2){console.log('Browser fallback failed:',e2)}
-    // Last fallback: redirect within WKWebView
+    }catch(e){console.log('Native Apple Sign-In not available, using in-app redirect:',e)}
+    // Fallback: OAuth redirect WITHIN the WKWebView (stays inside app)
     const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
   }else{
+    // Web: standard OAuth redirect
     const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
     if(error)toast('Error: '+error.message,'e');
   }
@@ -555,21 +547,21 @@ const TEAMS=[
 
 // Card types per team (20 cards each)
 const CT=["ESC","EQU","POR","POR","DEF","DEF","DEF","DEF","MED","MED","MED","MED","DEL","DEL","DEL","DEL","SUP","SUP","DT","STR"];
-const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"Mundial",TRF:"Trofeo",MSC:"Mascota",EMB:"Emblema",BAL:"Balón",SDO:"Estadio Sede"};
+const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"Torneo",TRF:"Trofeo",MSC:"Mascota",EMB:"Emblema",BAL:"Balón",SDO:"Estadio Sede"};
 const CC={ESC:"#EAB308",EQU:"#8B5CF6",POR:"#EF4444",DEF:"#22C55E",MED:"#0078D4",DEL:"#E86A10",SUP:"#6B7280",DT:"#374151",STR:"#F59E0B",FWC:"#B45309",TRF:"#D97706",MSC:"#7C3AED",EMB:"#0369A1",BAL:"#059669",SDO:"#4338CA"};
 const CI={ESC:"🛡️",EQU:"📸",POR:"🧤",DEF:"🛡",MED:"⚙️",DEL:"⚽",SUP:"🔄",DT:"👔",STR:"⭐",FWC:"🏆",TRF:"🏆",MSC:"🐾",EMB:"✨",BAL:"⚽",SDO:"🏟️"};
 
 // FWC intro section (20 stickers)
 const FWC_STICKERS=[
-{id:"FWC-1",nm:"Logo Mundial 2026",ct:"FWC",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-2",nm:"Trofeo Copa del Mundo (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-3",nm:"Trofeo Copa del Mundo (2/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-4",nm:"Mascota Oficial (1/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
-{id:"FWC-5",nm:"Mascota Oficial (2/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
-{id:"FWC-6",nm:"Emblema Oficial (1/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
-{id:"FWC-7",nm:"Emblema Oficial (2/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
-{id:"FWC-8",nm:"Balón Oficial del Torneo",ct:"BAL",ic:"⚽",rar:"special",foil:true},
-{id:"FWC-9",nm:"MetLife Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"82,500",city:"Nueva York/Nueva Jersey",info:"Sede de la FINAL del Mundial 2026"},
+{id:"FWC-1",nm:"Logotipo del Torneo",ct:"FWC",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-2",nm:"Trofeo del Torneo (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-3",nm:"Trofeo del Torneo (2/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-4",nm:"Mascota del Torneo (1/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
+{id:"FWC-5",nm:"Mascota del Torneo (2/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
+{id:"FWC-6",nm:"Emblema del Torneo (1/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
+{id:"FWC-7",nm:"Emblema del Torneo (2/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
+{id:"FWC-8",nm:"Balón del Torneo",ct:"BAL",ic:"⚽",rar:"special",foil:true},
+{id:"FWC-9",nm:"MetLife Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"82,500",city:"Nueva York/Nueva Jersey",info:"Sede principal del torneo"},
 {id:"FWC-10",nm:"SoFi Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"70,240",city:"Los Ángeles",info:"El estadio más moderno de EEUU, casa de los Rams"},
 {id:"FWC-11",nm:"AT&T Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"80,000",city:"Dallas, Texas",info:"Tiene la pantalla gigante más grande del mundo"},
 {id:"FWC-12",nm:"Hard Rock Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"64,767",city:"Miami, Florida",info:"Sede del Super Bowl y la F1 de Miami"},
@@ -619,7 +611,7 @@ let ALL=[];
 (function(){
 // First: FWC intro section (stickers 1-23)
 FWC_STICKERS.forEach((f,i)=>{
-  ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Mundial 2026',fl:'🏆',ct:f.ct,nm:f.nm,
+  ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Torneo 2026',fl:'🏆',ct:f.ct,nm:f.nm,
     rar:f.rar,star:false,foil:f.foil||false});
 });
 // Then: 48 teams × 20 stickers each (stickers 24-983)
@@ -964,7 +956,6 @@ xs:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444"
 clk:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
 pin:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
 gear:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
-share:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
 heart:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
 heartF:`<svg width="18" height="18" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
 pkg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`
@@ -1020,7 +1011,7 @@ function finishOnboard(){LS.s('onboarded',true);U({showOnboard:false})}
 function checkOnboard(){if(!LS.g('onboarded',false)){U({showOnboard:true,onboardSlide:0})}}
 
 function rAuth(){
-if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">by AMPM · Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p><button style="color:rgba(255,255,255,.25);font-size:11px;margin-top:8px;z-index:1" onclick="adminLogin()">🔒 Admin</button></div>`;
+if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">by AMPM · Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p></div>`;
 return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Casi listo!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">¿Cómo te llamás y de dónde sos?</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button></div></div>`}
 function bAuth(){const n=document.getElementById('aN'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()){const uid=S.user?.id||'u-'+Date.now();U({user:{...S.user,id:uid,nm:S.authN.trim(),ph:'',ct:S.authC},authStep:0});LS.s('userCity',S.authC);checkOnboard()}}}}
 function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U({isAdmin:true,showAdmin:true})}else if(pw!==null){alert('Contraseña incorrecta')}}
@@ -1037,7 +1028,7 @@ return`<div class="bnav">
 // ===== HOME =====
 function rHome(){
 const s=stats(),ls=liveSess(),d=daysToWC(),mt=getMatches(),favS=S.favStore?ST.find(x=>x.id===S.favStore):null,favLive=S.favStore&&isLive(S.favStore),favNext=S.favStore?nextSess(S.favStore):null;
-return`<div class="scr"><div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center"><div><p style="font-size:13px;color:var(--g5)">Hola,</p><h1 style="font-size:22px;font-weight:800;color:var(--g9);font-family:'Outfit',sans-serif">${S.user.nm} 👋</h1></div><div style="display:flex;gap:8px">${S.isAdmin?`<button style="width:40px;height:40px;border-radius:12px;background:var(--g1);display:flex;align-items:center;justify-content:center;color:var(--g7)" onclick="U({showAdmin:true})">${I.gear}</button>`:''}<div style="width:40px;height:40px;border-radius:12px;background:var(--b0);display:flex;align-items:center;justify-content:center;color:var(--b6)">${I.bell}</div></div></div>
+return`<div class="scr"><div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center"><div><p style="font-size:13px;color:var(--g5)">Hola,</p><h1 style="font-size:22px;font-weight:800;color:var(--g9);font-family:'Outfit',sans-serif">${S.user.nm} 👋</h1></div><div style="display:flex;gap:8px">${S.isAdmin?`<button style="width:40px;height:40px;border-radius:12px;background:var(--g1);display:flex;align-items:center;justify-content:center;color:var(--g7)" onclick="U({showAdmin:true})">${I.gear}</button>`:''}</div></div>
 
 ${rStickerOfDay()}
 ${rStreak()}
@@ -1077,7 +1068,7 @@ function rAlbum(){const s=stats(),q=S.aSrch.toLowerCase(),f=S.aFilt;
 const fwcStks=ALL.filter(x=>x.tc==='FWC');const fwcOwned=fwcStks.filter(x=>S.my[x.id]?.q>0).length,fwcPct=Math.round(fwcOwned/23*100);
 // Build all stickers in album order: FWC first, then teams by group
 let sections=[];
-if(!q||'mundial trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'Mundial 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
+if(!q||'mundial trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'Torneo 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
 TEAMS.forEach(t=>{if(!q||t.n.toLowerCase().includes(q)||t.c.toLowerCase().includes(q)){sections.push({c:t.c,n:t.n,f:t.f,g:t.g,stickers:ALL.filter(x=>x.tc===t.c)})}});
 // Apply filter
 const applyFilt=(stks)=>stks.filter(x=>{const d=S.my[x.id];if(f==='own')return d?.q>0;if(f==='mis')return!d||d.q===0;if(f==='dup')return d?.q>1;if(f==='trd')return d?.a>0;return true});
@@ -1573,7 +1564,7 @@ const FUN_FACTS=[
 {team:'MEX',fact:'México será sede del Mundial por TERCERA vez — un récord mundial',emoji:'🇲🇽'},
 {team:'USA',fact:'Este será el Mundial más grande de la historia con 48 equipos y 104 partidos',emoji:'🇺🇸'},
 {team:'KOR',fact:'Corea del Sur llegó a semifinales en su Mundial de 2002 — ¡4to lugar!',emoji:'🇰🇷'},
-{team:'ARG',fact:'Argentina ganó la Copa del Mundo 2022 en Qatar con un gol memorable de Messi',emoji:'🏆'},
+{team:'ARG',fact:'Argentina ganó la Torneo 2022 en Qatar con un gol memorable de Messi',emoji:'🏆'},
 {team:'NOR',fact:'Erling Haaland mide 1.94m y puede correr los 100 metros en 10.6 segundos',emoji:'🇳🇴'},
 {team:'URU',fact:'Uruguay ganó el primer Mundial de la historia en 1930 en su propio país',emoji:'🇺🇾'},
 {team:'MAR',fact:'Marruecos fue el primer equipo africano en llegar a semifinales (Qatar 2022)',emoji:'🇲🇦'},
