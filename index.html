@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#003B73">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Figuritas by AMPM – Mundial 2026</title>
+<title>Figuritas by AMPM – Torneo 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--b9:#001F3F;--b8:#003B73;--b7:#004E9A;--b6:#0065C1;--b5:#0078D4;--b4:#3A9AE8;--b1:#DCE9F7;--b0:#EFF5FC;--o7:#C45500;--o6:#E86A10;--o5:#FF7A1A;--o4:#FF923E;--o1:#FFF0E0;--o0:#FFF8F0;--g9:#1A1D21;--g7:#374151;--g5:#6B7280;--g4:#9CA3AF;--g3:#D1D5DB;--g2:#E5E7EB;--g1:#F3F4F6;--g0:#F9FAFB;--w:#FFF;--red:#EF4444;--grn:#22C55E;--grn0:#F0FDF4;--ylw:#EAB308}
@@ -194,10 +194,10 @@ async function supaLoadAll(userId){
   console.log('Loading data from Supabase for',userId);
   try{
     // Load stickers
-    const{data:stickers,error:sErr}=await supaClient.from('stickers').select('sticker_id,quantity,available_for_trade').eq('user_id',userId);
+    const{data:stickers,error:sErr}=await supaClient.from('stickers').select('sticker_id,quantity,for_trade').eq('user_id',userId);
     if(!sErr&&stickers){
       const my={};
-      stickers.forEach(s=>{my[s.sticker_id]={q:s.quantity,a:s.available_for_trade}});
+      stickers.forEach(s=>{my[s.sticker_id]={q:s.quantity,a:s.for_trade}});
       // Merge: if Supabase has data, use it; if empty but LS has data, upload LS data
       if(stickers.length>0){
         S.my=my;LS.s('my',my);
@@ -245,7 +245,7 @@ async function supaLoadAll(userId){
 
 async function supaBulkUploadStickers(userId,myMap){
   if(!supaClient||!userId)return;
-  const rows=Object.entries(myMap).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:userId,sticker_id:k,quantity:v.q,available_for_trade:v.a||0}));
+  const rows=Object.entries(myMap).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:userId,sticker_id:k,quantity:v.q,for_trade:v.a||0}));
   if(rows.length===0)return;
   // Batch in chunks of 200
   for(let i=0;i<rows.length;i+=200){
@@ -280,7 +280,7 @@ async function supaFlush(){
     // Sync stickers
     if(_syncQueue.stickers){
       _syncQueue.stickers=false;
-      const rows=Object.entries(S.my).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:uid,sticker_id:k,quantity:v.q,available_for_trade:v.a||0}));
+      const rows=Object.entries(S.my).filter(([k,v])=>v.q>0).map(([k,v])=>({user_id:uid,sticker_id:k,quantity:v.q,for_trade:v.a||0}));
       if(rows.length>0){
         for(let i=0;i<rows.length;i+=200){
           const chunk=rows.slice(i,i+200);
@@ -337,7 +337,7 @@ async function supaSaveSticker(stickerId,qty,avail){
   if(qty<=0){
     await supaClient.from('stickers').delete().eq('user_id',_supaUserId).eq('sticker_id',stickerId);
   }else{
-    await supaClient.from('stickers').upsert({user_id:_supaUserId,sticker_id:stickerId,quantity:qty,available_for_trade:avail},{onConflict:'user_id,sticker_id'});
+    await supaClient.from('stickers').upsert({user_id:_supaUserId,sticker_id:stickerId,quantity:qty,for_trade:avail},{onConflict:'user_id,sticker_id'});
   }
 }
 
@@ -435,19 +435,14 @@ async function fetchGlobalStats(){
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins?.Browser){
-    const{data,error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,skipBrowserRedirect:true}});
-    if(error){toast('Error: '+error.message,'e');return}
-    if(data?.url){await window.Capacitor.Plugins.Browser.open({url:data.url,presentationStyle:'fullscreen',toolbarColor:'#003B73'})}
-  }else{
-    const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
-    if(error)toast('Error: '+error.message,'e');
-  }
+  // Always redirect within WKWebView - stays inside the app
+  const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+  if(error)toast('Error: '+error.message,'e');
 }
 async function signInWithApple(){
   if(!supaClient){toast('Supabase no configurado','e');return}
+  // Try native Sign in with Apple first (iOS native dialog)
   if(window.Capacitor && window.Capacitor.isNativePlatform()){
-    // Try native Sign in with Apple first
     try{
       const SIA=window.Capacitor.Plugins?.SignInWithApple;
       if(SIA){
@@ -458,15 +453,11 @@ async function signInWithApple(){
           return;
         }
       }
-    }catch(e){console.log('Native Apple Sign-In not available, using in-app redirect:',e)}
-    // Fallback: OAuth redirect WITHIN the WKWebView (stays inside app)
-    const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
-    if(error)toast('Error: '+error.message,'e');
-  }else{
-    // Web: standard OAuth redirect
-    const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
-    if(error)toast('Error: '+error.message,'e');
+    }catch(e){console.log('Native Apple Sign-In not available:',e)}
   }
+  // Fallback: OAuth redirect within WKWebView (stays inside app)
+  const{error}=await supaClient.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});
+  if(error)toast('Error: '+error.message,'e');
 }
 async function signInAsGuest(){
   if(supaClient){
@@ -565,7 +556,7 @@ const FWC_STICKERS=[
 {id:"FWC-10",nm:"SoFi Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"70,240",city:"Los Ángeles",info:"El estadio más moderno de EEUU, casa de los Rams"},
 {id:"FWC-11",nm:"AT&T Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"80,000",city:"Dallas, Texas",info:"Tiene la pantalla gigante más grande del mundo"},
 {id:"FWC-12",nm:"Hard Rock Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"64,767",city:"Miami, Florida",info:"Sede del Super Bowl y la F1 de Miami"},
-{id:"FWC-13",nm:"Estadio Azteca",ct:"SDO",ic:"🏟️",rar:"common",cap:"87,523",city:"Ciudad de México",info:"¡Sede del partido inaugural! 3er Mundial aquí"},
+{id:"FWC-13",nm:"Estadio Azteca",ct:"SDO",ic:"🏟️",rar:"common",cap:"87,523",city:"Ciudad de México",info:"¡Sede del partido inaugural! 3er torneo aquí"},
 {id:"FWC-14",nm:"Estadio BBVA",ct:"SDO",ic:"🏟️",rar:"common",cap:"53,500",city:"Monterrey, México",info:"Considerado uno de los estadios más bonitos de América"},
 {id:"FWC-15",nm:"Estadio Akron",ct:"SDO",ic:"🏟️",rar:"common",cap:"49,850",city:"Guadalajara, México",info:"Casa de las Chivas, con forma de volcán"},
 {id:"FWC-16",nm:"BC Place",ct:"SDO",ic:"🏟️",rar:"common",cap:"54,500",city:"Vancouver, Canadá",info:"Tiene techo retráctil y vista a las montañas"},
@@ -994,7 +985,7 @@ app.innerHTML=h;bEv()}
 // ===== AUTH =====
 // ===== ONBOARDING =====
 const OB_SLIDES=[
-  {emoji:'📖',title:'Coleccioná',desc:'Registrá las figuritas que tenés, controlá tu progreso y completá tu álbum del Mundial 2026'},
+  {emoji:'📖',title:'Coleccioná',desc:'Registrá las figuritas que tenés, controlá tu progreso y completá tu álbum del Torneo 2026'},
   {emoji:'🔄',title:'Intercambiá',desc:'Encontrá otros coleccionistas en tu AMPM más cercano durante las jornadas de intercambio'},
   {emoji:'🏆',title:'Competí y ganá',desc:'Subí en el ranking de tu ciudad, predecí resultados en el Prode y completá tu colección'}
 ];
@@ -1011,7 +1002,7 @@ function finishOnboard(){LS.s('onboarded',true);U({showOnboard:false})}
 function checkOnboard(){if(!LS.g('onboarded',false)){U({showOnboard:true,onboardSlide:0})}}
 
 function rAuth(){
-if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">by AMPM · Mundial 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p></div>`;
+if(S.authStep===0)return`<div class="auth"><div style="font-size:72px;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))">⚽</div><div style="font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;color:#fff;z-index:1">Figuritas</div><div style="font-size:14px;color:rgba(255,255,255,.6);letter-spacing:2px;font-weight:600;text-transform:uppercase;z-index:1">by AMPM · Torneo 2026</div><div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:8px 20px;margin:12px 0 32px;z-index:1"><span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:1.5px">POWERED BY</span>${LOGO(100,true)}</div><div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;z-index:1"><button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#fff;color:#333;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continuar con Google</button><button onclick="signInWithApple()" style="width:100%;padding:14px 20px;background:#000;color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.15)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.53-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.67 9.3c1.28.06 2.15.72 2.91.76.94-.19 1.84-.91 3.14-.82 1.73.14 2.83.82 3.44 2.1-3.1 1.88-2.36 5.98.42 7.12-.57 1.35-1.01 2.06-1.53 2.82zM12.03 9.18C11.86 7.15 13.5 5.47 15.4 5.3c.27 2.34-2.1 4.1-3.37 3.88z"/></svg> Continuar con Apple</button><button onclick="signInAsGuest()" style="width:100%;padding:14px 20px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">👤 Entrar como invitado</button></div><p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:20px;z-index:1;max-width:280px;text-align:center;line-height:1.4">Al continuar aceptás los términos de uso</p></div>`;
 return`<div class="auth"><div class="auth-form"><button style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px;display:flex;align-items:center;gap:4px" onclick="U({authStep:0})">${I.cl} Volver</button><h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif">¡Casi listo!</h2><p style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:28px">¿Cómo te llamás y de dónde sos?</p><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu nombre</label><input id="aN" value="${S.authN}" placeholder="Ej: Milton"><label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px">Tu ciudad</label><select id="aC" style="width:100%;padding:14px 16px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;margin-bottom:14px;appearance:none">${CITIES.map(c=>`<option value="${c}" style="color:#000" ${c===S.authC?'selected':''}>${c}</option>`).join('')}</select><button class="abtn p" id="aS">Entrar</button></div></div>`}
 function bAuth(){const n=document.getElementById('aN'),c=document.getElementById('aC'),b=document.getElementById('aS');if(n){n.oninput=()=>{S.authN=n.value};if(c)c.onchange=()=>{S.authC=c.value};b.onclick=()=>{if(S.authN.trim()){const uid=S.user?.id||'u-'+Date.now();U({user:{...S.user,id:uid,nm:S.authN.trim(),ph:'',ct:S.authC},authStep:0});LS.s('userCity',S.authC);checkOnboard()}}}}
 function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U({isAdmin:true,showAdmin:true})}else if(pw!==null){alert('Contraseña incorrecta')}}
@@ -1032,7 +1023,7 @@ return`<div class="scr"><div style="padding:16px 16px 8px;display:flex;justify-c
 
 ${rStickerOfDay()}
 ${rStreak()}
-<div class="cdown"><div class="days">${d}</div><div><div style="font-size:13px;font-weight:700">días para el Mundial</div><div class="txt">11 Jun – 19 Jul 2026 · USA/MEX/CAN</div></div></div>
+<div class="cdown"><div class="days">${d}</div><div><div style="font-size:13px;font-weight:700">días para el torneo</div><div class="txt">11 Jun – 19 Jul 2026 · USA/MEX/CAN</div></div></div>
 
 ${favS&&!favLive&&favNext?`<div style="background:var(--o0);border:1px solid var(--o4);border-radius:14px;padding:12px 16px;margin:0 16px 12px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⭐</span><div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--o7)">Tu tienda favorita</div><div style="font-size:11px;color:var(--o6)">${favS.nm} — próx: ${favNext.dt} ${favNext.s}</div></div></div>`:''}
 ${favLive?`<div style="background:var(--grn0);border:2px solid var(--grn);border-radius:14px;padding:12px 16px;margin:0 16px 12px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🎉</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#166534">¡Tu tienda tiene jornada activa!</div><div style="font-size:11px;color:#166534">${favS.nm} — ¡Andá a intercambiar!</div></div></div>`:''}
@@ -1068,7 +1059,7 @@ function rAlbum(){const s=stats(),q=S.aSrch.toLowerCase(),f=S.aFilt;
 const fwcStks=ALL.filter(x=>x.tc==='FWC');const fwcOwned=fwcStks.filter(x=>S.my[x.id]?.q>0).length,fwcPct=Math.round(fwcOwned/23*100);
 // Build all stickers in album order: FWC first, then teams by group
 let sections=[];
-if(!q||'mundial trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'Torneo 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
+if(!q||'torneo trofeo mascota estadio'.includes(q)){sections.push({c:'FWC',n:'Torneo 2026',f:'🏆',stickers:ALL.filter(x=>x.tc==='FWC')})}
 TEAMS.forEach(t=>{if(!q||t.n.toLowerCase().includes(q)||t.c.toLowerCase().includes(q)){sections.push({c:t.c,n:t.n,f:t.f,g:t.g,stickers:ALL.filter(x=>x.tc===t.c)})}});
 // Apply filter
 const applyFilt=(stks)=>stks.filter(x=>{const d=S.my[x.id];if(f==='own')return d?.q>0;if(f==='mis')return!d||d.q===0;if(f==='dup')return d?.q>1;if(f==='trd')return d?.a>0;return true});
@@ -1348,7 +1339,7 @@ return`<div class="scr"><div class="ph"><h1>Mi Perfil</h1></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div class="st">Estadísticas</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[{em:'⚽',n:s.o,l:'Figuritas',cl:'var(--b6)'},{em:'🔍',n:s.m,l:'Faltan',cl:'var(--red)'},{em:'♻️',n:s.d,l:'Repetidas',cl:'var(--o5)'},{em:'🔄',n:s.t,l:'En cambio',cl:'var(--b5)'}].map(x=>`<div class="metric"><div style="font-size:20px;margin-bottom:2px">${x.em}</div><div class="n" style="color:${x.cl}">${x.n}</div><div class="lb">${x.l}</div></div>`).join('')}</div></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div class="st">🏅 Logros (${earned}/${ach.length})</div><div style="display:flex;flex-wrap:wrap">${ach.map(a=>`<div class="ach ${a.earned?'earned':'locked'}"><span class="ic">${a.earned?a.ic:'🔒'}</span><span class="nm">${a.nm}</span></div>`).join('')}</div></div>
 <div style="background:var(--w);border:1px solid var(--g2);border-radius:16px;padding:16px;margin:0 16px 16px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:600;color:var(--g9)">Progreso del álbum</span><span style="font-size:13px;font-weight:700;color:var(--o5)">${s.p}%</span></div><div style="height:8px;background:var(--g2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${s.p}%;background:linear-gradient(90deg,var(--b6),var(--o5));border-radius:4px"></div></div><div style="font-size:11px;color:var(--g4);margin-top:6px">${s.o} de ${TOT} figuritas</div></div>
-<div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px">${S.isAdmin?`<button onclick="U({showAdmin:true})" style="flex:1;padding:12px;background:var(--g9);color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">${I.gear} Panel Admin</button>`:''}</div>
+<div style="display:flex;gap:8px;padding:0 16px;margin-bottom:16px"></div>
 <div style="padding:0 16px;margin-bottom:16px"><div class="dm-toggle" onclick="toggleSound()" style="margin-bottom:8px"><div class="dm-track ${_soundOn?'on':''}" style="background:${_soundOn?'var(--b5)':'var(--g3)'}"><div class="dm-knob" style="${_soundOn?'left:22px':'left:2px'}"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${_soundOn?'🔊 Sonidos activados':'🔇 Sonidos desactivados'}</div><div style="font-size:11px;color:var(--g5)">Efectos al agregar figuritas</div></div></div><div class="dm-toggle" onclick="toggleDark()"><div class="dm-track ${S.darkMode?'on':''}"><div class="dm-knob"></div></div><div><div style="font-size:13px;font-weight:600;color:var(--g9)">${S.darkMode?'🌙 Modo oscuro':'☀️ Modo claro'}</div><div style="font-size:11px;color:var(--g5)">Tocá para cambiar</div></div></div></div>
 <button style="display:block;width:calc(100% - 32px);margin:0 16px 20px;padding:14px;background:var(--w);border:1px solid var(--red);color:var(--red);border-radius:14px;font-size:14px;font-weight:600" onclick="doSignOut()">Cerrar sesión</button>
 </div>`}
@@ -1441,7 +1432,7 @@ function setResult(mid,h,a){LS.s('results_'+mid,{h:parseInt(h)||0,a:parseInt(a)|
 function rProdeTab(){
 const ps=prodeStats(),g=S.prodeGroup,gMatches=MATCHES.filter(m=>m.g===g);
 const groups=['A','B','C','D','E','F','G','H','I','J','K','L'];
-return`<div class="scr"><div style="padding:16px 16px 8px"><h1 style="font-size:22px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--g9)">Partidos Mundial</h1><p style="font-size:13px;color:var(--g5)">${ps.predicted}/${ps.total} predicciones · ${ps.pts} puntos</p></div>
+return`<div class="scr"><div style="padding:16px 16px 8px"><h1 style="font-size:22px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--g9)">Partidos del Torneo</h1><p style="font-size:13px;color:var(--g5)">${ps.predicted}/${ps.total} predicciones · ${ps.pts} puntos</p></div>
 
 <div style="padding:0 16px 12px">
 <div style="background:linear-gradient(135deg,var(--o5),var(--o6));border-radius:14px;padding:14px;color:#fff;display:flex;align-items:center;gap:14px">
@@ -1495,7 +1486,7 @@ ${S.isAdmin&&!result?`<button style="width:100%;margin-top:8px;padding:8px;backg
 function rProde(){
 const ps=prodeStats(),g=S.prodeGroup,gMatches=MATCHES.filter(m=>m.g===g);
 const groups=['A','B','C','D','E','F','G','H','I','J','K','L'];
-return`<div class="wiz"><div class="wizh" style="background:linear-gradient(135deg,#1a1a2e,#16213e)"><button style="color:#fff" onclick="U({showProde:false})">${I.x}</button><div style="flex:1"><h3 style="font-size:16px;font-weight:700;font-family:'Outfit',sans-serif">⚽ Prode Mundial 2026</h3><div style="font-size:11px;opacity:.6">${ps.predicted}/${ps.total} predicciones · ${ps.pts} puntos</div></div></div>
+return`<div class="wiz"><div class="wizh" style="background:linear-gradient(135deg,#1a1a2e,#16213e)"><button style="color:#fff" onclick="U({showProde:false})">${I.x}</button><div style="flex:1"><h3 style="font-size:16px;font-weight:700;font-family:'Outfit',sans-serif">⚽ Prode Torneo 2026</h3><div style="font-size:11px;opacity:.6">${ps.predicted}/${ps.total} predicciones · ${ps.pts} puntos</div></div></div>
 
 <div style="padding:12px 16px">
 <!-- Points bar -->
@@ -1553,35 +1544,35 @@ function admSetResult(mid){const h=prompt('Goles local:');if(h===null)return;con
 // ===== STICKER OF THE DAY =====
 const FUN_FACTS=[
 {team:'ARG',fact:'Messi empezó a jugar fútbol a los 5 años en Rosario, Argentina',emoji:'🇦🇷'},
-{team:'BRA',fact:'Brasil es el único país que ha jugado TODOS los Mundiales de la historia',emoji:'🇧🇷'},
-{team:'FRA',fact:'Mbappé fue el jugador más joven en anotar en una final de Mundial desde Pelé',emoji:'🇫🇷'},
-{team:'GER',fact:'Alemania ha ganado 4 Mundiales y siempre llega lejos en los torneos',emoji:'🇩🇪'},
-{team:'ESP',fact:'España ganó su primer Mundial en 2010 en Sudáfrica con el famoso tiki-taka',emoji:'🇪🇸'},
+{team:'BRA',fact:'Brasil es el único país que ha jugado TODOS los torneos de la historia',emoji:'🇧🇷'},
+{team:'FRA',fact:'Mbappé fue el jugador más joven en anotar en una final del torneo desde Pelé',emoji:'🇫🇷'},
+{team:'GER',fact:'Alemania ha ganado 4 torneos y siempre llega lejos en los torneos',emoji:'🇩🇪'},
+{team:'ESP',fact:'España ganó su primer torneo en 2010 en Sudáfrica con el famoso tiki-taka',emoji:'🇪🇸'},
 {team:'ENG',fact:'Inglaterra inventó el fútbol moderno en 1863 y tiene la liga más vista del mundo',emoji:'🏴\u200d'},
 {team:'POR',fact:'Cristiano Ronaldo es el máximo goleador de selecciones en la historia: 130+ goles',emoji:'🇵🇹'},
 {team:'NED',fact:'Holanda inventó el "fútbol total" con Johan Cruyff en los años 70',emoji:'🇳🇱'},
-{team:'JPN',fact:'Japón fue el primer equipo asiático en clasificar al Mundial 2026',emoji:'🇯🇵'},
-{team:'MEX',fact:'México será sede del Mundial por TERCERA vez — un récord mundial',emoji:'🇲🇽'},
-{team:'USA',fact:'Este será el Mundial más grande de la historia con 48 equipos y 104 partidos',emoji:'🇺🇸'},
-{team:'KOR',fact:'Corea del Sur llegó a semifinales en su Mundial de 2002 — ¡4to lugar!',emoji:'🇰🇷'},
+{team:'JPN',fact:'Japón fue el primer equipo asiático en clasificar al Torneo 2026',emoji:'🇯🇵'},
+{team:'MEX',fact:'México será sede del torneo por TERCERA vez — un récord',emoji:'🇲🇽'},
+{team:'USA',fact:'Este será el torneo más grande de la historia con 48 equipos y 104 partidos',emoji:'🇺🇸'},
+{team:'KOR',fact:'Corea del Sur llegó a semifinales en su torneo de 2002 — ¡4to lugar!',emoji:'🇰🇷'},
 {team:'ARG',fact:'Argentina ganó la Torneo 2022 en Qatar con un gol memorable de Messi',emoji:'🏆'},
 {team:'NOR',fact:'Erling Haaland mide 1.94m y puede correr los 100 metros en 10.6 segundos',emoji:'🇳🇴'},
-{team:'URU',fact:'Uruguay ganó el primer Mundial de la historia en 1930 en su propio país',emoji:'🇺🇾'},
+{team:'URU',fact:'Uruguay ganó el primer torneo de la historia en 1930 en su propio país',emoji:'🇺🇾'},
 {team:'MAR',fact:'Marruecos fue el primer equipo africano en llegar a semifinales (Qatar 2022)',emoji:'🇲🇦'},
-{team:'CRO',fact:'Croacia tiene solo 4 millones de habitantes pero llegó a 2 finales de Mundial',emoji:'🇭🇷'},
+{team:'CRO',fact:'Croacia tiene solo 4 millones de habitantes pero llegó a 2 finales del torneo',emoji:'🇭🇷'},
 {team:'BEL',fact:'Kevin De Bruyne es considerado uno de los mejores pasadores de la historia',emoji:'🇧🇪'},
-{team:'COL',fact:'Colombia clasificó invicta a este Mundial — sin perder un solo partido',emoji:'🇨🇴'},
+{team:'COL',fact:'Colombia clasificó invicta a este torneo — sin perder un solo partido',emoji:'🇨🇴'},
 {team:'AUS',fact:'Australia queda tan lejos que viaja más de 15,000 km para jugar cada partido',emoji:'🇦🇺'},
-{team:'SEN',fact:'Senegal venció a Francia 1-0 en el Mundial 2002 — una de las mayores sorpresas',emoji:'🇸🇳'},
-{team:'ECU',fact:'Ecuador será el primer país en jugar un Mundial teniendo volcanes activos a 50km',emoji:'🇪🇨'},
+{team:'SEN',fact:'Senegal venció a Francia 1-0 en el torneo 2002 — una de las mayores sorpresas',emoji:'🇸🇳'},
+{team:'ECU',fact:'Ecuador será el primer país en jugar un torneo teniendo volcanes activos a 50km',emoji:'🇪🇨'},
 {team:'EGY',fact:'Mohamed Salah es conocido como el "Rey de Egipto" y marca goles imposibles',emoji:'🇪🇬'},
 {team:'GHA',fact:'Ghana fue el último equipo africano en llegar a cuartos de final (2010)',emoji:'🇬🇭'},
 {team:'ALG',fact:'Argelia fue campeona de la Copa Africana de Naciones en 2019',emoji:'🇩🇿'},
-{team:'HAI',fact:'Haití es el equipo más pequeño del Mundial 2026 — ¡su primera vez clasificando!',emoji:'🇭🇹'},
-{team:'CUW',fact:'Curazao es la nación MÁS PEQUEÑA en clasificar a un Mundial — ¡solo 150,000 habitantes!',emoji:'🇨🇼'},
+{team:'HAI',fact:'Haití es el equipo más pequeño del Torneo 2026 — ¡su primera vez clasificando!',emoji:'🇭🇹'},
+{team:'CUW',fact:'Curazao es la nación MÁS PEQUEÑA en clasificar a un torneo — ¡solo 150,000 habitantes!',emoji:'🇨🇼'},
 {team:'NZL',fact:'Nueva Zelanda es de Oceanía — el continente más pequeño del fútbol',emoji:'🇳🇿'},
-{team:'PAN',fact:'Panamá clasificó a su primer Mundial en 2018 y todo el país hizo fiesta',emoji:'🇵🇦'},
-{team:'JOR',fact:'Jordania clasificó al Mundial por primera vez en su historia — ¡hicieron historia!',emoji:'🇯🇴'}
+{team:'PAN',fact:'Panamá clasificó a su primer torneo en 2018 y todo el país hizo fiesta',emoji:'🇵🇦'},
+{team:'JOR',fact:'Jordania clasificó al torneo por primera vez en su historia — ¡hicieron historia!',emoji:'🇯🇴'}
 ];
 function getStickerOfDay(){const d=new Date();const idx=(d.getFullYear()*1000+d.getMonth()*31+d.getDate())%FUN_FACTS.length;return FUN_FACTS[idx]}
 function rStickerOfDay(){const s=getStickerOfDay();return`<div class="sotd">
