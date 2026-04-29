@@ -186,6 +186,31 @@ let _syncing=false;
 let _syncQueue={stickers:false,preds:false,profile:false};
 
 try{if(typeof supabase!=='undefined'){supaClient=supabase.createClient(SUPA_URL,SUPA_KEY);console.log('Supabase connected!')}}catch(e){console.log('Supabase not available, using localStorage')}
+// iOS: close in-app browser automatically when OAuth callback arrives
+if(window.Capacitor && window.Capacitor.isNativePlatform()){
+  const App=window.Capacitor.Plugins?.App;
+  const Browser=window.Capacitor.Plugins?.Browser;
+  if(App && Browser){
+    App.addListener('appUrlOpen', async (data)=>{
+      try{
+        const url=data?.url||'';
+        if(url.includes('access_token') || url.includes('code=') || url.includes('#access_token')){
+          await Browser.close();
+          // Let Supabase parse the URL hash/query for the session
+          const hash=url.split('#')[1] || url.split('?')[1];
+          if(hash && supaClient){
+            const params=new URLSearchParams(hash);
+            const access_token=params.get('access_token');
+            const refresh_token=params.get('refresh_token');
+            if(access_token && refresh_token){
+              await supaClient.auth.setSession({access_token, refresh_token});
+            }
+          }
+        }
+      }catch(e){console.log('Deep link handler error:',e)}
+    });
+  }
+}
 
 // ===== SUPABASE DATA SYNC LAYER =====
 async function supaLoadAll(userId){
@@ -435,7 +460,28 @@ async function fetchGlobalStats(){
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Supabase no configurado','e');return}
-  // Always redirect within WKWebView - stays inside the app
+  // On iOS native: use SFSafariViewController via @capacitor/browser (Apple-compliant in-app browser)
+  if(window.Capacitor && window.Capacitor.isNativePlatform()){
+    try{
+      const{data,error}=await supaClient.auth.signInWithOAuth({
+        provider:'google',
+        options:{
+          redirectTo:'https://ampm-figuritas.vercel.app',
+          skipBrowserRedirect:true
+        }
+      });
+      if(error){toast('Error: '+error.message,'e');return}
+      if(data?.url){
+        const Browser=window.Capacitor.Plugins?.Browser;
+        if(Browser){
+          await Browser.open({url:data.url,presentationStyle:'popover'});
+          // Listener handles deep link return
+          return;
+        }
+      }
+    }catch(e){toast('Error Google: '+e.message,'e');return}
+  }
+  // Web fallback: standard OAuth redirect
   const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
   if(error)toast('Error: '+error.message,'e');
 }
@@ -538,25 +584,25 @@ const TEAMS=[
 
 // Card types per team (20 cards each)
 const CT=["ESC","EQU","POR","POR","DEF","DEF","DEF","DEF","MED","MED","MED","MED","DEL","DEL","DEL","DEL","SUP","SUP","DT","STR"];
-const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"Torneo",TRF:"Trofeo",MSC:"Mascota",EMB:"Emblema",BAL:"Balón",SDO:"Estadio Sede"};
+const CL={ESC:"Escudo",EQU:"Equipo",POR:"Portero",DEF:"Defensa",MED:"Mediocampista",DEL:"Delantero",SUP:"Suplente",DT:"Director Técnico",STR:"Estrella",FWC:"Especial",TRF:"Estrella",MSC:"Personaje",EMB:"Insignia",BAL:"Balón",SDO:"Estadio Sede"};
 const CC={ESC:"#EAB308",EQU:"#8B5CF6",POR:"#EF4444",DEF:"#22C55E",MED:"#0078D4",DEL:"#E86A10",SUP:"#6B7280",DT:"#374151",STR:"#F59E0B",FWC:"#B45309",TRF:"#D97706",MSC:"#7C3AED",EMB:"#0369A1",BAL:"#059669",SDO:"#4338CA"};
 const CI={ESC:"🛡️",EQU:"📸",POR:"🧤",DEF:"🛡",MED:"⚙️",DEL:"⚽",SUP:"🔄",DT:"👔",STR:"⭐",FWC:"🏆",TRF:"🏆",MSC:"🐾",EMB:"✨",BAL:"⚽",SDO:"🏟️"};
 
 // FWC intro section (20 stickers)
 const FWC_STICKERS=[
-{id:"FWC-1",nm:"Logotipo del Torneo",ct:"FWC",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-2",nm:"Trofeo del Torneo (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-3",nm:"Trofeo del Torneo (2/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
-{id:"FWC-4",nm:"Mascota del Torneo (1/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
-{id:"FWC-5",nm:"Mascota del Torneo (2/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
-{id:"FWC-6",nm:"Emblema del Torneo (1/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
-{id:"FWC-7",nm:"Emblema del Torneo (2/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
-{id:"FWC-8",nm:"Balón del Torneo",ct:"BAL",ic:"⚽",rar:"special",foil:true},
-{id:"FWC-9",nm:"MetLife Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"82,500",city:"Nueva York/Nueva Jersey",info:"Sede principal del torneo"},
+{id:"FWC-1",nm:"Bienvenida",ct:"FWC",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-2",nm:"Tarjeta Estrella (1/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-3",nm:"Tarjeta Estrella (2/2)",ct:"TRF",ic:"🏆",rar:"special",foil:true},
+{id:"FWC-4",nm:"Personaje (1/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
+{id:"FWC-5",nm:"Personaje (2/2)",ct:"MSC",ic:"🐾",rar:"special",foil:true},
+{id:"FWC-6",nm:"Insignia (1/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
+{id:"FWC-7",nm:"Insignia (2/2)",ct:"EMB",ic:"✨",rar:"special",foil:true},
+{id:"FWC-8",nm:"Balón Oficial",ct:"BAL",ic:"⚽",rar:"special",foil:true},
+{id:"FWC-9",nm:"MetLife Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"82,500",city:"Nueva York/Nueva Jersey",info:"Estadio principal del evento"},
 {id:"FWC-10",nm:"SoFi Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"70,240",city:"Los Ángeles",info:"El estadio más moderno de EEUU, casa de los Rams"},
 {id:"FWC-11",nm:"AT&T Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"80,000",city:"Dallas, Texas",info:"Tiene la pantalla gigante más grande del mundo"},
 {id:"FWC-12",nm:"Hard Rock Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"64,767",city:"Miami, Florida",info:"Sede del Super Bowl y la F1 de Miami"},
-{id:"FWC-13",nm:"Estadio Azteca",ct:"SDO",ic:"🏟️",rar:"common",cap:"87,523",city:"Ciudad de México",info:"¡Sede del partido inaugural! 3er torneo aquí"},
+{id:"FWC-13",nm:"Estadio Azteca",ct:"SDO",ic:"🏟️",rar:"common",cap:"87,523",city:"Ciudad de México",info:"¡Sede del partido inaugural!"},
 {id:"FWC-14",nm:"Estadio BBVA",ct:"SDO",ic:"🏟️",rar:"common",cap:"53,500",city:"Monterrey, México",info:"Considerado uno de los estadios más bonitos de América"},
 {id:"FWC-15",nm:"Estadio Akron",ct:"SDO",ic:"🏟️",rar:"common",cap:"49,850",city:"Guadalajara, México",info:"Casa de las Chivas, con forma de volcán"},
 {id:"FWC-16",nm:"BC Place",ct:"SDO",ic:"🏟️",rar:"common",cap:"54,500",city:"Vancouver, Canadá",info:"Tiene techo retráctil y vista a las montañas"},
@@ -786,7 +832,7 @@ function anyLive(){return partStores().some(x=>isLive(x.id))}
 function liveSess(){const now=new Date(),td=now.toISOString().split('T')[0],tm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;return SESS.filter(x=>x.dt===td&&x.on&&tm>=x.s&&tm<=x.e&&isPart(x.sid))}
 function toast(m,t='s'){S.toast={m,t};R();setTimeout(()=>{S.toast=null;R()},2500)}
 function daysToWC(){const wc=new Date('2026-06-11T00:00:00');const now=new Date();return Math.max(0,Math.ceil((wc-now)/(1000*60*60*24)))}
-function getAch(){const s=stats();const a=[];a.push({id:'first',nm:'Primera figurita',ic:'🎯',earned:s.o>=1});a.push({id:'t10',nm:'10 figuritas',ic:'🔟',earned:s.o>=10});a.push({id:'t50',nm:'50 figuritas',ic:'🌟',earned:s.o>=50});a.push({id:'t100',nm:'Centenario',ic:'💯',earned:s.o>=100});a.push({id:'half',nm:'Medio álbum',ic:'📖',earned:s.p>=50});a.push({id:'full',nm:'Álbum completo',ic:'🏆',earned:s.p>=100});
+function getAch(){const s=stats();const a=[];a.push({id:'first',nm:'Primera figurita',ic:'🎯',earned:s.o>=1});a.push({id:'t10',nm:'10 figuritas',ic:'🔟',earned:s.o>=10});a.push({id:'t50',nm:'50 figuritas',ic:'🌟',earned:s.o>=50});a.push({id:'t100',nm:'Centenario',ic:'💯',earned:s.o>=100});a.push({id:'half',nm:'Mitad de la colección',ic:'📖',earned:s.p>=50});a.push({id:'full',nm:'Colección completa',ic:'🏆',earned:s.p>=100});
 const teams=TEAMS.filter(t=>tProg(t.c).p===100);a.push({id:'team1',nm:'País completo',ic:'🇳🇮',earned:teams.length>=1});a.push({id:'team5',nm:'5 países',ic:'🌎',earned:teams.length>=7});
 a.push({id:'trade1',nm:'Primer intercambio',ic:'🤝',earned:S.myEx.filter(e=>e.st==='completed').length>=1});
 a.push({id:'star1',nm:'Figurita estrella',ic:'⭐',earned:ALL.filter(x=>x.star&&S.my[x.id]?.q>0).length>=1});
@@ -820,7 +866,7 @@ applyDark();
 // ===== QUICK ADD - single tap = +1, long press = edit =====
 let _longTimer=null;
 function stickerTap(id){
-  if(S.albumLocked){toast('🔒 Álbum bloqueado — desbloqueá en la parte superior','i');return}
+  if(S.albumLocked){toast('🔒 Colección bloqueada — desbloqueá en la parte superior','i');return}
   quickAdd(id);
 }
 function stickerHold(id){
@@ -888,9 +934,9 @@ function checkMilestones(){
   [25,50,75,100].forEach(pct=>{const key='cel_pct_'+pct;
     if(s.p>=pct&&!LS.g(key,false)){LS.s(key,true);
       if(pct===100)showCelebration('¡ÁLBUM COMPLETO!','🏆');
-      else if(pct===75)showCelebration('¡75% del álbum!','🔥');
-      else if(pct===50)showCelebration('¡Mitad del álbum!','⭐');
-      else if(pct===25)showCelebration('¡25% del álbum!','💪')}});
+      else if(pct===75)showCelebration('¡75% completado!','🔥');
+      else if(pct===50)showCelebration('¡Mitad completada!','⭐');
+      else if(pct===25)showCelebration('¡25% completado!','💪')}});
 }
 
 
@@ -985,7 +1031,7 @@ app.innerHTML=h;bEv()}
 // ===== AUTH =====
 // ===== ONBOARDING =====
 const OB_SLIDES=[
-  {emoji:'📖',title:'Coleccioná',desc:'Registrá las figuritas que tenés, controlá tu progreso y completá tu álbum del Torneo 2026'},
+  {emoji:'📖',title:'Coleccioná',desc:'Registrá las figuritas que tenés, controlá tu progreso y completá tu colección del Torneo 2026'},
   {emoji:'🔄',title:'Intercambiá',desc:'Encontrá otros coleccionistas en tu AMPM más cercano durante las jornadas de intercambio'},
   {emoji:'🏆',title:'Competí y ganá',desc:'Subí en el ranking de tu ciudad, predecí resultados en el Prode y completá tu colección'}
 ];
@@ -1010,7 +1056,7 @@ function adminLogin(){const pw=prompt('Contraseña admin:');if(pw===ADMIN_PW){U(
 // ===== NAV =====
 function rNav(){
 const pc=S.exs.filter(e=>e.st==='pending').length;
-const tabs=[{id:'album',i:I.book,l:'Álbum'},{id:'exchange',i:I.swap,l:'Cambiar'},{id:'home',i:I.home,l:'Inicio'},{id:'prode',i:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',l:'Partidos'},{id:'stores',i:I.store,l:'Tiendas'},{id:'profile',i:I.user,l:'Perfil'}];
+const tabs=[{id:'album',i:I.book,l:'Colección'},{id:'exchange',i:I.swap,l:'Cambiar'},{id:'home',i:I.home,l:'Inicio'},{id:'prode',i:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',l:'Partidos'},{id:'stores',i:I.store,l:'Tiendas'},{id:'profile',i:I.user,l:'Perfil'}];
 return`<div class="bnav">
 <div class="ad-bar" onclick="window.open('https://www.coca-cola.com','_blank')"><div style="font-size:32px">🥤</div><div class="t">${S.adBanner.txt}</div><div class="s">Ad</div></div>
 <div class="tabs">${tabs.map(t=>`<button class="nb ${S.tab===t.id?'a':''}" onclick="U({tab:'${t.id}',selTeam:null,selStore:null})" style="color:${S.tab===t.id?'var(--o5)':'var(--g5)'}">${t.i}${t.b>0?`<span class="nbdg">${t.b}</span>`:''}<span class="l">${t.l}</span></button>`).join('')}</div>
@@ -1075,7 +1121,7 @@ return`<div class="scr">
 </div></div>
 
 <div class="sb">${I.srch}<input id="aS2" value="${S.aSrch}" placeholder="Buscar selección..."></div>
-${S.albumLocked?`<div style="background:var(--o0);border:1px solid var(--o4);border-radius:10px;padding:8px 14px;margin:0 16px 8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--o7)"><span style="font-size:16px">🔒</span><span style="font-weight:600">Álbum bloqueado</span> — tocá el candado para desbloquear</div>`:''}
+${S.albumLocked?`<div style="background:var(--o0);border:1px solid var(--o4);border-radius:10px;padding:8px 14px;margin:0 16px 8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--o7)"><span style="font-size:16px">🔒</span><span style="font-weight:600">Colección bloqueada</span> — tocá el candado para desbloquear</div>`:''}
 
 <!-- Filters -->
 <div class="flt">${[['all',`Todas (${TOT})`],['own',`Tengo (${s.o})`],['mis',`Faltan (${s.m})`],['dup',`Repetidas (${s.d})`],['trd',`Cambio (${s.t})`]].map(([id,lb])=>`<button class="fb ${f===id?'a':''}" onclick="U({aFilt:'${id}'})">${lb}</button>`).join('')}</div>
@@ -1165,7 +1211,7 @@ function packRmNum(i){const n=[...S.packNums];n.splice(i,1);U({packNums:n})}
 function packReveal(){const m={...S.my};const log=LS.g('actLog',[]);const synced=[];S.packNums.forEach(n=>{const sk=ALL.find(x=>x.num===n);if(sk){const cur=m[sk.id]||{q:0,a:0};const nq=cur.q+1;m[sk.id]={q:nq,a:nq>=2?nq-1:0};log.unshift({id:sk.id,num:sk.num,fl:sk.fl,tn:sk.tn,t:Date.now()});synced.push({id:sk.id,q:nq,a:m[sk.id].a,num:sk.num,fl:sk.fl,tn:sk.tn})}});if(log.length>20)log.length=20;LS.s('actLog',log);if(navigator.vibrate)navigator.vibrate([30,50,30]);U({my:m,packRevealed:true});synced.forEach(s=>{supaSaveSticker(s.id,s.q,s.a);supaLogActivity(s.id,s.num,s.fl,s.tn)});playSound('pack');toast(`🎉 ¡${S.packNums.length} figuritas agregadas!`);setTimeout(checkMilestones,800)}
 
 // ===== LOCK ALBUM =====
-function toggleLock(){const v=!S.albumLocked;LS.s('albumLock',v);U({albumLocked:v});toast(v?'🔒 Álbum bloqueado':'🔓 Álbum desbloqueado','i')}
+function toggleLock(){const v=!S.albumLocked;LS.s('albumLock',v);U({albumLocked:v});toast(v?'🔒 Colección bloqueada':'🔓 Colección desbloqueada','i')}
 
 // ===== EXCHANGES =====
 function rExch(){const aa=anyLive(),sub=S.exSub;
