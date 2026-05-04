@@ -459,29 +459,51 @@ async function fetchGlobalStats(){
 }
 
 async function signInWithGoogle(){
-  if(!supaClient){toast('Supabase no configurado','e');return}
-  // On iOS native: use SFSafariViewController via @capacitor/browser (Apple-compliant in-app browser)
-  if(window.Capacitor && window.Capacitor.isNativePlatform()){
+  if(!supaClient){toast('Servicio no disponible','e');return}
+  // ===== iOS/Android NATIVE PATH (Apple-compliant) =====
+  // SFSafariViewController via @capacitor/browser. NEVER fall through to web redirect.
+  const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform();
+  if(isNative){
+    const Browser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+    if(!Browser){
+      console.error('[GoogleSignIn] Browser plugin missing');
+      toast('Iniciá la app de nuevo, por favor','e');
+      return; // BLINDED: no fallback to web
+    }
     try{
-      const{data,error}=await supaClient.auth.signInWithOAuth({
+      const r = await supaClient.auth.signInWithOAuth({
         provider:'google',
         options:{
           redirectTo:'https://ampm-figuritas.vercel.app',
           skipBrowserRedirect:true
         }
       });
-      if(error){toast('Error: '+error.message,'e');return}
-      if(data?.url){
-        const Browser=window.Capacitor.Plugins?.Browser;
-        if(Browser){
-          await Browser.open({url:data.url,presentationStyle:'popover'});
-          // Listener handles deep link return
-          return;
-        }
+      if(r && r.error){
+        console.error('[GoogleSignIn] OAuth error:',r.error);
+        toast('Error: '+r.error.message,'e');
+        return; // BLINDED
       }
-    }catch(e){toast('Error Google: '+e.message,'e');return}
+      const url = r && r.data && r.data.url;
+      if(!url){
+        console.error('[GoogleSignIn] No URL returned');
+        toast('No se pudo iniciar Google','e');
+        return; // BLINDED
+      }
+      // Open in SFSafariViewController — user stays inside the app
+      await Browser.open({
+        url: url,
+        presentationStyle:'popover',
+        windowName:'_self',
+        toolbarColor:'#003B73'
+      });
+      return; // BLINDED: always return after Browser.open
+    }catch(e){
+      console.error('[GoogleSignIn] Exception:',e);
+      toast('Google no disponible: '+(e&&e.message?e.message:'error'),'e');
+      return; // BLINDED: NEVER fall to web fallback on native
+    }
   }
-  // Web fallback: standard OAuth redirect
+  // ===== WEB-ONLY PATH (web browser only, never reached on iOS/Android native) =====
   const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
   if(error)toast('Error: '+error.message,'e');
 }
@@ -609,10 +631,7 @@ const FWC_STICKERS=[
 {id:"FWC-17",nm:"BMO Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"45,736",city:"Toronto, Canadá",info:"El primer estadio de fútbol profesional de Canadá"},
 {id:"FWC-18",nm:"Lumen Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,000",city:"Seattle",info:"Famoso por ser el estadio más ruidoso del mundo"},
 {id:"FWC-19",nm:"NRG Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"72,220",city:"Houston, Texas",info:"Primer estadio con techo retráctil de Texas"},
-{id:"FWC-20",nm:"Lincoln Financial Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,176",city:"Filadelfia",info:"Casa de los Eagles, con los fans más apasionados"},
-{id:"FWC-21",nm:"GEHA Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"76,416",city:"Kansas City",info:"Casa de los Chiefs, campeones del Super Bowl"},
-{id:"FWC-22",nm:"Gillette Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"65,878",city:"Boston",info:"Donde Tom Brady ganó 6 Super Bowls"},
-{id:"FWC-23",nm:"Mercedes-Benz Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"71,000",city:"Atlanta",info:"Su techo se abre como los pétalos de una flor"}
+{id:"FWC-20",nm:"Lincoln Financial Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,176",city:"Filadelfia",info:"Casa de los Eagles, con los fans más apasionados"}
 ];
 
 // Star players data
@@ -651,7 +670,7 @@ FWC_STICKERS.forEach((f,i)=>{
   ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Torneo 2026',fl:'🏆',ct:f.ct,nm:f.nm,
     rar:f.rar,star:false,foil:f.foil||false});
 });
-// Then: 48 teams × 20 stickers each (stickers 24-983)
+// Then: 48 teams × 20 stickers each (stickers 21-980)
 let n=24;
 TEAMS.forEach(t=>{
   const sp=STARS[t.c];
@@ -670,7 +689,7 @@ TEAMS.forEach(t=>{
   }
 });
 })();
-const TOT=ALL.length; // 983 = 23 FWC + 48×20 teams
+const TOT=ALL.length; // 980 = 20 FWC + 48×20 teams
 
 // ===== 85 REAL STORES =====
 const ST=[
