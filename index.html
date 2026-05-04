@@ -630,7 +630,8 @@ const FWC_STICKERS=[
 {id:"FWC-16",nm:"BC Place",ct:"SDO",ic:"🏟️",rar:"common",cap:"54,500",city:"Vancouver, Canadá",info:"Tiene techo retráctil y vista a las montañas"},
 {id:"FWC-17",nm:"BMO Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"45,736",city:"Toronto, Canadá",info:"El primer estadio de fútbol profesional de Canadá"},
 {id:"FWC-18",nm:"Lumen Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,000",city:"Seattle",info:"Famoso por ser el estadio más ruidoso del mundo"},
-{id:"FWC-19",nm:"NRG Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"72,220",city:"Houston, Texas",info:"Primer estadio con techo retráctil de Texas"}
+{id:"FWC-19",nm:"NRG Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"72,220",city:"Houston, Texas",info:"Primer estadio con techo retráctil de Texas"},
+{id:"FWC-20",nm:"Lincoln Financial Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,176",city:"Filadelfia",info:"Estadio reconocido en el noreste"}
 ];
 
 // Star players data
@@ -664,26 +665,27 @@ EGY:{star:"M. Salah",dt:"Hassan Shehata",p:["M. El-Shenawy","M. Abou Gabal","A. 
 // Generate all stickers
 let ALL=[];
 (function(){
-// First: FWC intro section (stickers 1-19)
+// First: FWC intro section (stickers 1-20, displayed as 00-19)
 FWC_STICKERS.forEach((f,i)=>{
-  ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Torneo 2026',fl:'🏆',ct:f.ct,nm:f.nm,
+  ALL.push({id:f.id,num:i+1,ln:i,tc:'FWC',tn:'Torneo 2026',fl:'🏆',ct:f.ct,nm:f.nm,
     rar:f.rar,star:false,foil:f.foil||false});
 });
-// Then: 48 teams × 20 stickers each (stickers 20-979)
-let n=20;
+// Then: 48 teams × 20 stickers each (stickers 21-980)
+let n=21;
 TEAMS.forEach(t=>{
   for(let i=0;i<20;i++){
     const type=CT[i];
-    // Display name: country code + sequential number (e.g. "ARG 1", "MEX 5")
-    const nm = `${t.c} ${i+1}`;
+    // Display: country code + local number 1-20 (e.g. "MEX 1", "ARG 5")
+    const ln = i+1; // local number 1-20 within country
+    const nm = `${t.c} ${ln}`;
     const isStar = (i===19);
-    ALL.push({id:`${t.c}-${i+1}`,num:n++,tc:t.c,tn:t.n,fl:t.f,ct:type,nm:nm,
+    ALL.push({id:`${t.c}-${ln}`,num:n++,ln:ln,tc:t.c,tn:t.n,fl:t.f,ct:type,nm:nm,
       rar:isStar?'legendary':(i<2)?'special':i===18?'rare':'common',
       star:isStar,foil:i===0||isStar});
   }
 });
 })();
-const TOT=ALL.length; // 979 = 19 FWC + 48×20 teams
+const TOT=ALL.length; // 980 = 20 FWC + 48×20 teams
 
 // ===== 85 REAL STORES =====
 const ST=[
@@ -1093,7 +1095,7 @@ ${favLive?`<div style="background:var(--grn0);border:2px solid var(--grn);border
 <button onclick="U({tab:'prode'})" style="width:calc(100% - 32px);margin:0 16px 14px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;font-weight:700"><span style="font-size:18px">⚽</span> Predecí los partidos <span style="font-size:10px;padding:3px 8px;background:var(--o5);border-radius:6px;font-weight:600">${prodeStats().pts} pts</span></button>
 
 ${getRecentActivity().length?`<div style="padding:0 16px"><div class="st">📝 Últimas agregadas</div></div>
-<div style="margin:0 16px 14px;display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">${getRecentActivity().slice(0,10).map(a=>{const ago=Math.round((Date.now()-a.t)/60000);const timeStr=ago<1?'ahora':ago<60?ago+'min':Math.round(ago/60)+'h';return`<div style="flex-shrink:0;width:64px;text-align:center;background:var(--w);border:1px solid var(--g2);border-radius:12px;padding:8px 4px"><div style="font-size:16px;margin-bottom:2px">${a.fl}</div><div style="font-size:14px;font-weight:800;color:var(--b6);font-family:'Outfit',sans-serif">${a.num}</div><div style="font-size:9px;color:var(--g4);margin-top:2px">${timeStr}</div></div>`}).join('')}</div>`:''}
+<div style="margin:0 16px 14px;display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">${getRecentActivity().slice(0,10).map(a=>{const ago=Math.round((Date.now()-a.t)/60000);const timeStr=ago<1?'ahora':ago<60?ago+'min':Math.round(ago/60)+'h';return`<div style="flex-shrink:0;width:64px;text-align:center;background:var(--w);border:1px solid var(--g2);border-radius:12px;padding:8px 4px"><div style="font-size:16px;margin-bottom:2px">${a.fl}</div><div style="font-size:11px;font-weight:800;color:var(--b6);font-family:'Outfit',sans-serif;line-height:1.1">${(()=>{const sk=ALL.find(s=>s.num===a.num);if(!sk)return a.num;return sk.tc==='FWC'?String(sk.ln).padStart(2,'0'):`${sk.tc}<br>${sk.ln}`})()}</div><div style="font-size:9px;color:var(--g4);margin-top:2px">${timeStr}</div></div>`}).join('')}</div>`:''}
 
 ${mt.length>0?`<div style="background:var(--b0);border:1px solid var(--b1);border-radius:14px;padding:12px 16px;margin:0 16px 14px;cursor:pointer" onclick="U({tab:'exchange'})"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">🔍</span><div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--b7)">${mt.length} usuario${mt.length>1?'s':''} tiene${mt.length>1?'n':''} figuritas que necesitás</div><div style="font-size:11px;color:var(--b5)">Tocá para ver los intercambios disponibles</div></div>${I.cr}</div></div>`:''}
 
@@ -1163,7 +1165,7 @@ const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const dup=d?.q>1;const isSta
 const bg=!has?'var(--g1)':tr?'var(--o5)':isStar&&has?'#FFD700':'var(--b5)';
 const border=!has?'1px dashed var(--g3)':isStar&&has?'1px solid #DAA520':'1px solid transparent';
 const color=!has?'var(--g4)':tr||(!isStar)?'#fff':'#5D3800';
-return`<button onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})' style="width:48px;height:48px;border-radius:12px;background:${bg};border:${border};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:${color};font-family:'Outfit',sans-serif;position:relative;transition:transform .1s;${!has?'opacity:.4':''}${isStar&&has?';box-shadow:0 1px 6px rgba(218,165,32,.3)':''}" ${!has?'':''}>${dup?`<div style="position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;font-weight:700;display:flex;align-items;center;justify-content:center">×${d.q}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-5px;left:-5px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''} ${x.num}</button>`}).join('')}</div></div>`}).join('')}
+return`<button onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})' style="width:48px;height:48px;border-radius:12px;background:${bg};border:${border};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:${color};font-family:'Outfit',sans-serif;position:relative;transition:transform .1s;${!has?'opacity:.4':''}${isStar&&has?';box-shadow:0 1px 6px rgba(218,165,32,.3)':''}" ${!has?'':''}>${dup?`<div style="position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;font-weight:700;display:flex;align-items;center;justify-content:center">×${d.q}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-5px;left:-5px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''} ${x.tc==='FWC'?String(x.ln).padStart(2,'0'):`${x.tc}<br>${x.ln}`}</button>`}).join('')}</div></div>`}).join('')}
 
 <div style="padding:8px 16px;font-size:10px;color:var(--g4);text-align:center">💡 Tap = +1 · Mantené presionado = editar</div>
 <div style="height:20px"></div></div>`}
@@ -1175,14 +1177,14 @@ const o=stks.filter(x=>S.my[x.id]?.q>0).length;const isFWC=t.c==='FWC';
 return`<div class="scr"><div style="background:${isFWC?'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)':'linear-gradient(135deg,var(--b8),var(--b6))'};padding:16px 16px 20px;color:#fff"><button style="color:rgba(255,255,255,.7);font-size:13px;display:flex;align-items:center;gap:4px;margin-bottom:12px" onclick="U({selTeam:null})">${I.cl} Volver</button><div style="display:flex;align-items:center;gap:12px"><span style="font-size:40px">${t.f}</span><div><h2 style="font-size:20px;font-weight:800;font-family:'Outfit',sans-serif">${t.n}</h2><p style="font-size:12px;opacity:.65">${isFWC?'Trofeo, mascota, emblema y 12 estadios sede':`Grupo ${t.g} · ${o}/${stks.length} figuritas`}</p></div></div></div>
 <div class="flt">${[['all','Todas'],['own','Tengo'],['mis','Faltan'],['dup','Repetidas'],['trd','En cambio'],['star',isFWC?'✨ FOIL':'⭐ Estrellas']].map(([id,lb])=>`<button class="fb ${f===id?'a':''}" onclick="U({aFilt:'${id}'})">${lb}</button>`).join('')}</div>
 <div style="padding:0 20px 4px;font-size:10px;color:var(--g4);display:flex;align-items:center;gap:4px"><span style="font-size:12px">💡</span> Tap = +1 figurita · Mantené presionado = editar</div>
-${fil.length?`<div class="sg">${fil.map(x=>{const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const icon=CI[x.ct]||'⚽';return`<button class="sc ${x.star&&has?'star':x.foil&&has?'star':tr?'trd':has?'own':'mis'}" onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})'>${d?.q>1?`<div class="qb">×${d.q}</div>`:''}${tr?'<div class="tb">🔄</div>':''}${(x.star||x.foil)&&has?`<div class="stb">${x.star?'⭐':'✨'}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-4px;left:-4px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''}<div style="font-size:20px;margin-bottom:2px">${x.ct==='ESC'?t.f:icon}</div><div style="font-size:16px;font-weight:800;color:${has?'var(--g9)':'var(--g4)'};font-family:'Outfit',sans-serif">${x.num}</div></button>`}).join('')}</div>`:`<div class="empty"><div class="em">🔍</div><div class="tt">No hay figuritas con este filtro</div></div>`}</div>`}
+${fil.length?`<div class="sg">${fil.map(x=>{const d=S.my[x.id];const has=d?.q>0;const tr=d?.a>0;const icon=CI[x.ct]||'⚽';return`<button class="sc ${x.star&&has?'star':x.foil&&has?'star':tr?'trd':has?'own':'mis'}" onclick='stickerTap("${x.id}")' ontouchstart='stickerHold("${x.id}")' ontouchend='stickerRelease()' oncontextmenu='event.preventDefault();U({sModal:ALL.find(z=>z.id=="${x.id}")})'>${d?.q>1?`<div class="qb">×${d.q}</div>`:''}${tr?'<div class="tb">🔄</div>':''}${(x.star||x.foil)&&has?`<div class="stb">${x.star?'⭐':'✨'}</div>`:''} ${has?`<div onclick='event.stopPropagation();quickRemove("${x.id}")' style="position:absolute;bottom:-4px;left:-4px;background:var(--g7);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">−</div>`:''}<div style="font-size:20px;margin-bottom:2px">${x.ct==='ESC'?t.f:icon}</div>${x.tc==='FWC'?`<div style="font-size:14px;font-weight:800;color:${has?'var(--g9)':'var(--g4)'};font-family:'Outfit',sans-serif">${String(x.ln).padStart(2,'0')}</div>`:`<div style="font-size:9px;font-weight:600;color:${has?'var(--g7)':'var(--g4)'};font-family:'Outfit',sans-serif;line-height:1">${x.tc}</div><div style="font-size:14px;font-weight:800;color:${has?'var(--g9)':'var(--g4)'};font-family:'Outfit',sans-serif;line-height:1">${x.ln}</div>`}</button>`}).join('')}</div>`:`<div class="empty"><div class="em">🔍</div><div class="tt">No hay figuritas con este filtro</div></div>`}</div>`}
 
 // ===== STICKER MODAL =====
 function rModal(){const x=S.sModal,d=S.my[x.id]||{q:0,a:0};const icon=CI[x.ct]||'⚽';
 return`<div class="mo" onclick="U({sModal:null})"><div class="ms" onclick="event.stopPropagation()"><div class="mh"></div>
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
 <div style="width:56px;height:56px;border-radius:14px;background:${CC[x.ct]};display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:800;${x.star||x.foil?'animation:goldGlow 2s ease infinite;':''}">${x.ct==='ESC'?x.fl:icon}</div>
-<div><div style="font-size:16px;font-weight:700;color:var(--g9)">${x.nm}</div><div style="font-size:12px;color:var(--g5)">${x.fl} ${x.tn} · ${CL[x.ct]||x.ct} · #${x.num}</div>
+<div><div style="font-size:16px;font-weight:700;color:var(--g9)">${x.nm}</div><div style="font-size:12px;color:var(--g5)">${x.fl} ${x.tn} · ${CL[x.ct]||x.ct} · ${x.tc==='FWC'?String(x.ln).padStart(2,'0'):`${x.tc} ${x.ln}`}</div>
 ${x.rar==='legendary'?'<span style="font-size:10px;font-weight:600;color:var(--o6);background:var(--o1);border-radius:6px;padding:2px 6px;display:inline-block;margin-top:4px">⭐ ESTRELLA</span>':x.rar==='rare'?'<span style="font-size:10px;font-weight:600;color:var(--b6);background:var(--b0);border-radius:6px;padding:2px 6px;display:inline-block;margin-top:4px">💎 RARA</span>':x.rar==='special'?'<span style="font-size:10px;font-weight:600;color:var(--g7);background:var(--g1);border-radius:6px;padding:2px 6px;display:inline-block;margin-top:4px">✨ ESPECIAL / FOIL</span>':''}</div></div>
 <div style="margin-bottom:20px"><label style="font-size:13px;font-weight:600;color:var(--g9);display:block;margin-bottom:8px">¿Cuántas tenés?</label><div style="display:flex;align-items:center;gap:12px"><button style="width:44px;height:44px;border-radius:12px;border:1px solid var(--g2);background:var(--w);font-size:20px;display:flex;align-items:center;justify-content:center" onclick="mQ(-1)">−</button><span id="mQN" style="font-size:28px;font-weight:800;font-family:'Outfit',sans-serif;min-width:40px;text-align:center;color:var(--b6)">${d.q}</span><button style="width:44px;height:44px;border-radius:12px;border:1px solid var(--g2);background:var(--w);font-size:20px;display:flex;align-items:center;justify-content:center" onclick="mQ(1)">+</button></div></div>
 <div id="mAC" style="margin-bottom:20px;display:${d.q>1?'block':'none'}"><label style="font-size:13px;font-weight:600;color:var(--g9);display:block;margin-bottom:8px">¿Cuántas ofrecés para intercambio?</label><div style="display:flex;align-items:center;gap:12px"><button style="width:44px;height:44px;border-radius:12px;border:1px solid var(--g2);background:var(--w);font-size:20px;display:flex;align-items:center;justify-content:center" onclick="mA(-1)">−</button><span id="mAN" style="font-size:28px;font-weight:800;font-family:'Outfit',sans-serif;min-width:40px;text-align:center;color:var(--o5)">${d.a}</span><button style="width:44px;height:44px;border-radius:12px;border:1px solid var(--g2);background:var(--w);font-size:20px;display:flex;align-items:center;justify-content:center" onclick="mA(1)">+</button></div><p style="font-size:11px;color:var(--g4);margin-top:6px">Máximo ${Math.max(0,d.q-1)}</p></div>
