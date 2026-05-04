@@ -630,8 +630,7 @@ const FWC_STICKERS=[
 {id:"FWC-16",nm:"BC Place",ct:"SDO",ic:"🏟️",rar:"common",cap:"54,500",city:"Vancouver, Canadá",info:"Tiene techo retráctil y vista a las montañas"},
 {id:"FWC-17",nm:"BMO Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"45,736",city:"Toronto, Canadá",info:"El primer estadio de fútbol profesional de Canadá"},
 {id:"FWC-18",nm:"Lumen Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,000",city:"Seattle",info:"Famoso por ser el estadio más ruidoso del mundo"},
-{id:"FWC-19",nm:"NRG Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"72,220",city:"Houston, Texas",info:"Primer estadio con techo retráctil de Texas"},
-{id:"FWC-20",nm:"Lincoln Financial Field",ct:"SDO",ic:"🏟️",rar:"common",cap:"69,176",city:"Filadelfia",info:"Casa de los Eagles, con los fans más apasionados"}
+{id:"FWC-19",nm:"NRG Stadium",ct:"SDO",ic:"🏟️",rar:"common",cap:"72,220",city:"Houston, Texas",info:"Primer estadio con techo retráctil de Texas"}
 ];
 
 // Star players data
@@ -665,31 +664,26 @@ EGY:{star:"M. Salah",dt:"Hassan Shehata",p:["M. El-Shenawy","M. Abou Gabal","A. 
 // Generate all stickers
 let ALL=[];
 (function(){
-// First: FWC intro section (stickers 1-23)
+// First: FWC intro section (stickers 1-19)
 FWC_STICKERS.forEach((f,i)=>{
   ALL.push({id:f.id,num:i+1,tc:'FWC',tn:'Torneo 2026',fl:'🏆',ct:f.ct,nm:f.nm,
     rar:f.rar,star:false,foil:f.foil||false});
 });
-// Then: 48 teams × 20 stickers each (stickers 21-980)
-let n=24;
+// Then: 48 teams × 20 stickers each (stickers 20-979)
+let n=20;
 TEAMS.forEach(t=>{
-  const sp=STARS[t.c];
   for(let i=0;i<20;i++){
-    const type=CT[i];let nm,isStar=false;
-    if(i===0) nm=`Escudo ${t.n}`;
-    else if(i===1) nm=`Foto Equipo ${t.n}`;
-    else if(i===19){nm=sp?.star||`Estrella ${t.n}`;isStar=true;}
-    else if(i===18&&sp) nm=sp.dt;
-    else if(i===18) nm=`DT ${t.c}`;
-    else if(sp&&sp.p&&sp.p[i-2]) nm=sp.p[i-2];
-    else nm=`${CL[type]} ${t.c}-${i-1}`;
+    const type=CT[i];
+    // Display name: country code + sequential number (e.g. "ARG 1", "MEX 5")
+    const nm = `${t.c} ${i+1}`;
+    const isStar = (i===19);
     ALL.push({id:`${t.c}-${i+1}`,num:n++,tc:t.c,tn:t.n,fl:t.f,ct:type,nm:nm,
       rar:isStar?'legendary':(i<2)?'special':i===18?'rare':'common',
       star:isStar,foil:i===0||isStar});
   }
 });
 })();
-const TOT=ALL.length; // 980 = 20 FWC + 48×20 teams
+const TOT=ALL.length; // 979 = 19 FWC + 48×20 teams
 
 // ===== 85 REAL STORES =====
 const ST=[
