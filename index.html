@@ -460,50 +460,76 @@ async function fetchGlobalStats(){
 
 async function signInWithGoogle(){
   if(!supaClient){toast('Servicio no disponible','e');return}
-  // ===== iOS/Android NATIVE PATH (Apple-compliant) =====
-  // SFSafariViewController via @capacitor/browser. NEVER fall through to web redirect.
-  const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform();
-  if(isNative){
-    const Browser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
-    if(!Browser){
-      console.error('[GoogleSignIn] Browser plugin missing');
-      toast('Iniciá la app de nuevo, por favor','e');
-      return; // BLINDED: no fallback to web
-    }
+  // ===== iOS NATIVE PATH (Apple-compliant via Google SDK) =====
+  const isIOS = window.Capacitor && typeof window.Capacitor.getPlatform==='function' && window.Capacitor.getPlatform()==='ios';
+  if(isIOS){
     try{
-      const r = await supaClient.auth.signInWithOAuth({
-        provider:'google',
-        options:{
-          redirectTo:'https://ampm-figuritas.vercel.app',
-          skipBrowserRedirect:true
+      const SocialLogin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+      if(!SocialLogin){
+        console.error('[GoogleSignIn] SocialLogin plugin missing');
+        toast('Reabrí la app por favor','e');
+        return;
+      }
+      // Initialize provider (idempotent — safe to call repeatedly)
+      await SocialLogin.initialize({
+        google:{
+          iOSClientId:'13505831408-p236l9odhqrf6j3a0dqd409krufbfugm.apps.googleusercontent.com',
+          iOSServerClientId:'13505831408-bb23rirr71tvv3h8oh4tu4iffc8sk7ef.apps.googleusercontent.com',
+          mode:'online'
         }
       });
-      if(r && r.error){
-        console.error('[GoogleSignIn] OAuth error:',r.error);
-        toast('Error: '+r.error.message,'e');
-        return; // BLINDED
-      }
-      const url = r && r.data && r.data.url;
-      if(!url){
-        console.error('[GoogleSignIn] No URL returned');
-        toast('No se pudo iniciar Google','e');
-        return; // BLINDED
-      }
-      // Open in SFSafariViewController — user stays inside the app
-      await Browser.open({
-        url: url,
-        presentationStyle:'popover',
-        windowName:'_self',
-        toolbarColor:'#003B73'
+      // Trigger native Google Sign-In dialog (NO browser, NO web view, fully native)
+      const r = await SocialLogin.login({
+        provider:'google',
+        options:{scopes:['email','profile']}
       });
-      return; // BLINDED: always return after Browser.open
+      const idToken = r && r.result && r.result.idToken;
+      if(!idToken){
+        console.error('[GoogleSignIn] No idToken in response',r);
+        toast('No se recibió token de Google','e');
+        return;
+      }
+      // Pass idToken to Supabase to create/restore session
+      const{error}=await supaClient.auth.signInWithIdToken({
+        provider:'google',
+        token:idToken
+      });
+      if(error){
+        console.error('[GoogleSignIn] Supabase error:',error);
+        toast('Error: '+error.message,'e');
+      }
+      return;
     }catch(e){
-      console.error('[GoogleSignIn] Exception:',e);
-      toast('Google no disponible: '+(e&&e.message?e.message:'error'),'e');
-      return; // BLINDED: NEVER fall to web fallback on native
+      console.error('[GoogleSignIn] Native exception:',e);
+      const msg = (e && e.message) ? e.message : 'error';
+      // User cancellation is silent
+      if(/cancel/i.test(msg)){return}
+      toast('Google: '+msg,'e');
+      return;
     }
   }
-  // ===== WEB-ONLY PATH (web browser only, never reached on iOS/Android native) =====
+  // ===== ANDROID NATIVE PATH (uses Browser plugin, Google Play allows this) =====
+  const isAndroid = window.Capacitor && typeof window.Capacitor.getPlatform==='function' && window.Capacitor.getPlatform()==='android';
+  if(isAndroid){
+    const Browser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+    if(Browser){
+      try{
+        const r = await supaClient.auth.signInWithOAuth({
+          provider:'google',
+          options:{redirectTo:'https://ampm-figuritas.vercel.app',skipBrowserRedirect:true}
+        });
+        if(r && r.error){toast('Error: '+r.error.message,'e');return}
+        const url = r && r.data && r.data.url;
+        if(!url){toast('No se pudo iniciar Google','e');return}
+        await Browser.open({url:url,presentationStyle:'popover',toolbarColor:'#003B73'});
+        return;
+      }catch(e){
+        toast('Google no disponible: '+(e&&e.message?e.message:'error'),'e');
+        return;
+      }
+    }
+  }
+  // ===== WEB PATH (browser only) =====
   const{error}=await supaClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
   if(error)toast('Error: '+error.message,'e');
 }
